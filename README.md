@@ -11,7 +11,7 @@ English | [中文](README.zh.md)
 
 A **技能 / Skills** row in the DeepSeek Harness left navigation, and the page it opens.
 
-[Install](#install) · [Download v0.1.0](https://github.com/yixin2021/dsh-skills/releases/latest) ·
+[Install](#install) · [Download v0.1.1](https://github.com/yixin2021/dsh-skills/releases/latest) ·
 [Landing page](https://yixin2021.github.io/dsh-skills/) (`github.io` is unreachable on some networks — see below)
 
 DSH discovers Agent Skills from `.dsh/skills` and `.agents/skills` — under your

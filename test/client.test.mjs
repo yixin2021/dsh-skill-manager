@@ -195,7 +195,7 @@ test('both halves of the panel are registered under one id', () => {
 test('the panel renders a stylesheet and never imports a Harness package', () => {
   const client = loadClient()
   const tree = client.expand(client.panel.component({}))
-  assert.equal(tree.props.className, 'dsm-page')
+  assert.equal(tree.props.className, 'dsk-page')
   assert.ok(tree.children.some((child) => child && child.type === 'style'), 'the panel carries its own stylesheet')
   assert.doesNotMatch(TEXT, /@deepseek-ai\//)
 })
@@ -216,39 +216,39 @@ test('only the list scrolls, and the page above it stays put', () => {
   // header must not travel with the list, so the page clips and one inner
   // region owns the scrolling.
   const css = stylesheetOf(loadClient())
-  const page = /\.dsm-page\{([^}]*)\}/.exec(css)
-  assert.ok(page, '.dsm-page is styled')
+  const page = /\.dsk-page\{([^}]*)\}/.exec(css)
+  assert.ok(page, '.dsk-page is styled')
   for (const rule of ['height:100%', 'overflow:hidden', 'min-height:0']) {
-    assert.ok(page[1].includes(rule), `.dsm-page declares ${rule}`)
+    assert.ok(page[1].includes(rule), `.dsk-page declares ${rule}`)
   }
   assert.doesNotMatch(page[1], /overflow-y:auto/, 'the page itself must not scroll')
   // A slot renderer that leaves an auto-height wrapper would defeat
   // `height:100%` alone; the viewport bound keeps the box bounded either way.
-  assert.match(page[1], /max-height:100dvh/, '.dsm-page bounds itself to the viewport')
+  assert.match(page[1], /max-height:100dvh/, '.dsk-page bounds itself to the viewport')
 
-  const body = /\.dsm-body\{([^}]*)\}/.exec(css)
-  assert.ok(body, '.dsm-body wraps the list')
+  const body = /\.dsk-body\{([^}]*)\}/.exec(css)
+  assert.ok(body, '.dsk-body wraps the list')
   assert.match(body[1], /flex:1 1 auto/, 'the body takes the leftover height')
   assert.match(body[1], /min-height:0/, 'the body may shrink below its content')
 
-  const list = /\.dsm-list\{([^}]*)\}/.exec(css)
-  assert.ok(list, '.dsm-list is the scroller')
+  const list = /\.dsk-list\{([^}]*)\}/.exec(css)
+  assert.ok(list, '.dsk-list is the scroller')
   for (const rule of ['overflow-y:auto', 'min-height:0', 'flex:1 1 auto']) {
-    assert.ok(list[1].includes(rule), `.dsm-list declares ${rule}`)
+    assert.ok(list[1].includes(rule), `.dsk-list declares ${rule}`)
   }
   // The native bar is hidden; the panel draws its own so it can fade out.
   assert.ok(list[1].includes('scrollbar-width:none'), 'the native scrollbar is hidden')
-  assert.match(css, /\.dsm-list::-webkit-scrollbar\{width:0/, 'WebKit hides the track too')
-  assert.match(css, /\.dsm-thumb\{[^}]*opacity:0/, 'the thumb starts invisible')
-  assert.match(css, /\.dsm-thumb\[data-on="true"\]\{opacity:\.45\}/, 'the thumb fades in while scrolling')
+  assert.match(css, /\.dsk-list::-webkit-scrollbar\{width:0/, 'WebKit hides the track too')
+  assert.match(css, /\.dsk-thumb\{[^}]*opacity:0/, 'the thumb starts invisible')
+  assert.match(css, /\.dsk-thumb\[data-on="true"\]\{opacity:\.45\}/, 'the thumb fades in while scrolling')
 
   // Flex children with their own `overflow:hidden` have an automatic minimum
   // size of 0, so cards squash instead of overflowing — the list then fits
   // exactly and never scrolls, and each squashed card clips its own rows.
-  assert.match(css, /\.dsm-page>\*\{flex:0 0 auto\}/, 'page children keep their content height')
+  assert.match(css, /\.dsk-page>\*\{flex:0 0 auto\}/, 'page children keep their content height')
   // The cards hang off the list, not the page: the same rule has to be applied
-  // to the container that actually scrolls, or nothing below `.dsm-list` scrolls.
-  assert.match(css, /\.dsm-list>\*\{flex:0 0 auto\}/, 'list children keep their content height')
+  // to the container that actually scrolls, or nothing below `.dsk-list` scrolls.
+  assert.match(css, /\.dsk-list>\*\{flex:0 0 auto\}/, 'list children keep their content height')
 })
 
 test('every stylesheet rule stays inside this package namespace', () => {
@@ -259,8 +259,44 @@ test('every stylesheet rule stays inside this package namespace', () => {
     .map((chunk) => chunk.split('{')[0].trim())
     .filter((selector) => selector.length > 0)
   for (const selector of bare) {
-    assert.match(selector, /^\.dsm-/, `selector escapes the namespace: ${selector}`)
+    assert.match(selector, /^\.dsk-/, `selector escapes the namespace: ${selector}`)
   }
+})
+
+test('the switch keeps its label on one line', () => {
+  // Incident: this page once used the `dsm-` prefix, which a sibling plugin
+  // (the sidebar menu) also ships. Its `.dsm-switch` turned this label into a
+  // 36px pill, the label shrank to that width, and "已启用" stacked vertically
+  // under the checkbox. The namespace moved to `dsk-`; the layout also stops
+  // depending on it, so a foreign width can still not wrap the words.
+  const css = stylesheetOf(loadClient())
+  const switchRule = /\.dsk-switch\{([^}]*)\}/.exec(css)
+  assert.ok(switchRule, '.dsk-switch is styled')
+  assert.match(switchRule[1], /white-space:nowrap/, 'the label never wraps')
+  assert.match(switchRule[1], /flex:none/, 'the label is not squeezed by a wider sibling')
+  assert.match(css, /\.dsk-switch input\{[^}]*flex:none/, 'the checkbox keeps its size')
+})
+
+test('the switch is a label wrapped around the checkbox and its text', async () => {
+  const root = {
+    key: 'user-dsh',
+    kind: 'user',
+    source: 'user-dsh',
+    path: '/home/u/.dsh/skills',
+    exists: true,
+    skills: [
+      { name: 'alpha', entryName: 'alpha', entryKind: 'directory', description: 'Alpha.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/home/u/.dsh/skills/alpha' },
+    ],
+    trash: [],
+  }
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+
+  const label = elementsOf(app.render()).find((element) => element.props?.className === 'dsk-switch')
+  assert.ok(label, 'the row renders the switch')
+  assert.equal(label.type, 'label', 'clicking the words toggles the checkbox')
+  assert.deepEqual(label.children.map((child) => child.type), ['input', 'span'], 'the input and its label are the only children')
+  assert.deepEqual(label.children[1].children, ['已启用'], 'the text is one string, on its own line')
 })
 
 /**
@@ -499,7 +535,7 @@ function mountClient(options = {}) {
   /** The fading thumb element of the current render. */
   const thumb = () => {
     const tree = render()
-    return elementsOf(tree).find((element) => element.props?.className === 'dsm-thumb')
+    return elementsOf(tree).find((element) => element.props?.className === 'dsk-thumb')
   }
 
   return { calls, render, settle, click, buttons: buttonsNow, text, nodeFor, thumb }
@@ -515,10 +551,10 @@ test('the reload button reports a read even when the result is unchanged', async
   assert.equal(app.calls[0].init.method, 'POST')
   assert.deepEqual(JSON.parse(app.calls[0].init.body), { action: 'list' })
 
-  const stamp = (node) => elementsOf(node).find((element) => element.props?.['data-dsm-read'] !== undefined)
+  const stamp = (node) => elementsOf(node).find((element) => element.props?.['data-dsk-read'] !== undefined)
   const before = stamp(tree)
   assert.ok(before, 'the toolbar carries a read stamp')
-  const firstRead = before.props['data-dsm-read']
+  const firstRead = before.props['data-dsk-read']
   assert.notEqual(firstRead, '0', 'the mount read is stamped')
 
   // Same disk, same answer: this is the case where the page looks inert.
@@ -534,7 +570,7 @@ test('the reload button reports a read even when the result is unchanged', async
 
   assert.equal(app.calls.length, 2, 'clicking 刷新 reads the roots again')
   assert.deepEqual(JSON.parse(app.calls[1].init.body), { action: 'list' })
-  const after = stamp(tree).props['data-dsm-read']
+  const after = stamp(tree).props['data-dsk-read']
   assert.notEqual(after, firstRead, 'the read stamp moves, so the click is visible')
   assert.match(app.text(), /最后读取 \d{2}:\d{2}:\d{2}/, 'the stamp is human readable')
 })
@@ -600,15 +636,15 @@ test('the list scrollbar follows the scroll and fades out when it stops', async 
 
   // Only the rows live in the scrolling region; the toolbar and the directory
   // tabs stay above it, which is the point of the split.
-  const list = elementsOf(app.render()).find((element) => element.props?.className === 'dsm-list')
+  const list = elementsOf(app.render()).find((element) => element.props?.className === 'dsk-list')
   assert.ok(list, 'the list region is rendered')
   const inside = elementsOf(list).map((element) => String(element.props?.className ?? ''))
-  assert.ok(!inside.includes('dsm-toolbar'), 'the toolbar is outside the scroller')
-  assert.ok(!inside.includes('dsm-roots'), 'the directory tabs are outside the scroller')
-  assert.ok(inside.some((name) => name.startsWith('dsm-card')), 'the skill cards are inside the scroller')
-  assert.ok(inside.includes('dsm-card-path'), 'each card keeps its directory path')
+  assert.ok(!inside.includes('dsk-toolbar'), 'the toolbar is outside the scroller')
+  assert.ok(!inside.includes('dsk-roots'), 'the directory tabs are outside the scroller')
+  assert.ok(inside.some((name) => name.startsWith('dsk-card')), 'the skill cards are inside the scroller')
+  assert.ok(inside.includes('dsk-card-path'), 'each card keeps its directory path')
 
-  const node = app.nodeFor('dsm-list')
+  const node = app.nodeFor('dsk-list')
   assert.ok(node, 'the list is mounted through a ref')
   assert.equal(app.thumb().props['data-on'], 'false', 'idle: the thumb is hidden')
 
@@ -719,7 +755,7 @@ test('an agent library is named after its agent and carries that agent\'s own ma
   const svgs = elementsOf(tree).filter((element) => element.type === 'svg')
   const tiles = elementsOf(tree).filter((element) => element.props?.dangerouslySetInnerHTML !== undefined)
 
-  const counts = elementsOf(tree).filter((element) => element.props?.className === 'dsm-root-count')
+  const counts = elementsOf(tree).filter((element) => element.props?.className === 'dsk-root-count')
   assert.ok(counts.length >= 8, 'the skill count sits beside the name, in the card and in the tab')
 
   // Tab plus card for each of the three agent roots.
@@ -751,7 +787,7 @@ test('GitHub import offers multi-select and imports the selected skills together
   assert.match(app.text(), /GitHub 链接/)
 
   const inputs = elementsOf(app.render()).filter((element) => element.type === 'input')
-  const link = inputs.find((element) => element.props.className === 'dsm-input' && element.props.type !== 'password')
+  const link = inputs.find((element) => element.props.className === 'dsk-input' && element.props.type !== 'password')
   assert.ok(link, 'the dialog has a GitHub link field')
   link.props.onChange({ target: { value: 'https://github.com/owner/repo' } })
 
@@ -814,13 +850,13 @@ test('the filtered root is the one an import targets by default', async () => {
   await app.settle()
 
   // Tabs are: all roots, then one per root, in listing order.
-  const tabs = elementsOf(app.render()).filter((element) => element.props?.className === 'dsm-root-tab')
+  const tabs = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-root-tab')
   assert.equal(tabs.length, 3, 'the toolbar lists both roots')
   tabs[1].props.onClick()
   app.render()
   app.buttons().find((entry) => entry.text === '从 GitHub 导入').props.onClick()
 
-  const select = elementsOf(app.render()).find((element) => element.type === 'select' && element.props?.className === 'dsm-input')
+  const select = elementsOf(app.render()).find((element) => element.type === 'select' && element.props?.className === 'dsk-input')
   assert.ok(select, 'the dialog offers a target root')
   assert.equal(select.props.value, 'custom:locked', 'it defaults to the root the page is filtered to')
 })
@@ -831,7 +867,7 @@ test('the target root cannot change while a scan is in flight', async () => {
   await app.settle()
   app.buttons().find((entry) => entry.text === '从 GitHub 导入').props.onClick()
 
-  const link = elementsOf(app.render()).find((element) => element.type === 'input' && element.props?.className === 'dsm-input' && element.props.type !== 'password')
+  const link = elementsOf(app.render()).find((element) => element.type === 'input' && element.props?.className === 'dsk-input' && element.props.type !== 'password')
   link.props.onChange({ target: { value: 'https://github.com/owner/repo' } })
 
   let release
@@ -843,7 +879,7 @@ test('the target root cannot change while a scan is in flight', async () => {
 
   const scan = app.buttons().find((entry) => entry.text === '扫描 GitHub')
   const pending = scan.props.onClick()
-  const select = elementsOf(app.render()).find((element) => element.type === 'select' && element.props?.className === 'dsm-input')
+  const select = elementsOf(app.render()).find((element) => element.type === 'select' && element.props?.className === 'dsk-input')
   assert.equal(select.props.disabled, true, 'the root is locked while the request owns it')
   release()
   await pending
@@ -864,9 +900,9 @@ test('a token is only sent when one was typed', async () => {
   }
 
   const inputs = elementsOf(app.render()).filter((element) => element.type === 'input')
-  const link = inputs.find((element) => element.props.className === 'dsm-input' && element.props.type !== 'password')
+  const link = inputs.find((element) => element.props.className === 'dsk-input' && element.props.type !== 'password')
   link.props.onChange({ target: { value: 'https://gitlab.com/owner/repo' } })
-  const secret = inputs.find((element) => element.props.className === 'dsm-input' && element.props.type === 'password')
+  const secret = inputs.find((element) => element.props.className === 'dsk-input' && element.props.type === 'password')
   assert.ok(secret, 'the dialog has a token field')
   secret.props.onChange({ target: { value: 'glpat_secret' } })
 

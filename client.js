@@ -458,12 +458,21 @@ window.__ModuleLoader__.load({
 
     /** A small status chip beside a skill name. */
     function Chip({ tone, children }) {
-      return h('span', { className: cx('dsm-chip', tone ? `dsm-chip-${tone}` : false) }, children)
+      return h('span', { className: cx('dsk-chip', tone ? `dsk-chip-${tone}` : false) }, children)
     }
 
     /**
      * The stylesheet. Every colour is a Host theme token, so the page follows
      * the light and dark themes without a palette of its own.
+     *
+     * The `dsk-` prefix is not decoration. An injected stylesheet is global to
+     * the page, so a second plugin that also ships `.dsm-switch`,
+     * `.dsm-row`, `.dsm-card` … wins whichever rule the document order puts
+     * last: the sidebar-menu plugin's own 36×20 pill switch once restyled this
+     * page's `<label class="dsm-switch">`, squeezed it to 36px wide and stacked
+     * "已启用" vertically under the input. Keep this prefix unique to this
+     * package and keep it off any class name another plugin is likely to
+     * invent.
      * @returns the CSS text.
      */
     function stylesheet() {
@@ -482,101 +491,104 @@ window.__ModuleLoader__.load({
         // The page itself never scrolls: the toolbar and the directory tabs stay
         // put and only the list below them moves. `overflow:hidden` here means
         // the list, not the page, owns the scrolling.
-        '.dsm-page{box-sizing:border-box;display:flex;width:100%;min-width:0;max-width:1080px;margin:0 auto;flex-direction:column;gap:16px;padding:24px 28px 0;color:var(--dsw-alias-label-primary);font-family:inherit;font-size:13px;line-height:20px;height:100%;min-height:0;max-height:100vh;max-height:100dvh;overflow:hidden}',
-        '.dsm-head{display:flex;flex-direction:column;gap:6px}',
-        '.dsm-title{margin:0;font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.2px}',
-        '.dsm-subtitle{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
-        '.dsm-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-        '.dsm-read-stamp{margin-left:auto;color:var(--dsw-alias-label-secondary);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}',
-        '.dsm-grow{flex:1 1 220px;min-width:180px}',
-        '.dsm-search{box-sizing:border-box;width:100%;height:32px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
-        '.dsm-search::placeholder{color:var(--dsw-alias-label-secondary)}',
-        '.dsm-search:focus-visible,.dsm-input:focus-visible,.dsm-textarea:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
-        '.dsm-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}',
-        '.dsm-button:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}',
-        '.dsm-button:disabled{opacity:.5;cursor:default}',
-        '.dsm-button-primary{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}',
-        '.dsm-button-quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary);padding:0 8px}',
-        '.dsm-button-quiet:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
-        '.dsm-button-danger{color:var(--dsw-alias-state-error-primary)}',
-        '.dsm-roots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
-        '.dsm-root-tab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}',
-        '.dsm-root-tab:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}',
-        '.dsm-root-tab[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}',
-        '.dsm-mark{display:inline-flex;flex:none;align-items:center;justify-content:center}',
-        '.dsm-mark>svg{display:block;width:100%;height:100%}',
-        '.dsm-root-count{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;font-size:11px}',
+        '.dsk-page{box-sizing:border-box;display:flex;width:100%;min-width:0;max-width:1080px;margin:0 auto;flex-direction:column;gap:16px;padding:24px 28px 0;color:var(--dsw-alias-label-primary);font-family:inherit;font-size:13px;line-height:20px;height:100%;min-height:0;max-height:100vh;max-height:100dvh;overflow:hidden}',
+        '.dsk-head{display:flex;flex-direction:column;gap:6px}',
+        '.dsk-title{margin:0;font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.2px}',
+        '.dsk-subtitle{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
+        '.dsk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+        '.dsk-read-stamp{margin-left:auto;color:var(--dsw-alias-label-secondary);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}',
+        '.dsk-grow{flex:1 1 220px;min-width:180px}',
+        '.dsk-search{box-sizing:border-box;width:100%;height:32px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
+        '.dsk-search::placeholder{color:var(--dsw-alias-label-secondary)}',
+        '.dsk-search:focus-visible,.dsk-input:focus-visible,.dsk-textarea:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+        '.dsk-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}',
+        '.dsk-button:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}',
+        '.dsk-button:disabled{opacity:.5;cursor:default}',
+        '.dsk-button-primary{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}',
+        '.dsk-button-quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary);padding:0 8px}',
+        '.dsk-button-quiet:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+        '.dsk-button-danger{color:var(--dsw-alias-state-error-primary)}',
+        '.dsk-roots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
+        '.dsk-root-tab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}',
+        '.dsk-root-tab:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}',
+        '.dsk-root-tab[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-mark{display:inline-flex;flex:none;align-items:center;justify-content:center}',
+        '.dsk-mark>svg{display:block;width:100%;height:100%}',
+        '.dsk-root-count{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;font-size:11px}',
         // Cards are flex children of the list. A flex child whose own
         // `overflow` is not `visible` has an automatic minimum size of ZERO, so
         // without this it gets squashed to fit instead of pushing the list into
         // its scrollbar: the list then fits exactly, never scrolls, and the
         // squashed card clips its own rows. `flex:none` keeps every block at its
         // content height; the list, not the cards, does the scrolling.
-        '.dsm-page>*{flex:0 0 auto}',
+        '.dsk-page>*{flex:0 0 auto}',
         // The one scrolling region, plus a thumb that only shows while it moves.
-        '.dsm-body{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0}',
-        '.dsm-list{display:flex;flex-direction:column;gap:16px;flex:1 1 auto;min-height:0;padding:2px 0 32px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}',
+        '.dsk-body{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0}',
+        '.dsk-list{display:flex;flex-direction:column;gap:16px;flex:1 1 auto;min-height:0;padding:2px 0 32px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}',
         // The same rule one level down: the cards are children of the list, and
         // a scroller whose children shrink to fit never overflows. Leaving this
         // out squashes every card to its own header and hides each path line.
-        '.dsm-list>*{flex:0 0 auto}',
-        '.dsm-list::-webkit-scrollbar{width:0;height:0}',
-        '.dsm-thumb{position:absolute;right:-9px;width:6px;border-radius:3px;background:var(--dsw-alias-label-secondary);opacity:0;pointer-events:none;transition:opacity 180ms ease}',
-        '.dsm-thumb[data-on="true"]{opacity:.45}',
-        '.dsm-card{display:flex;flex-direction:column;overflow:hidden;border:0.5px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}',
-        '.dsm-card-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-bottom:0.5px solid var(--dsw-alias-border-l1)}',
-        '.dsm-card-title{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}',
+        '.dsk-list>*{flex:0 0 auto}',
+        '.dsk-list::-webkit-scrollbar{width:0;height:0}',
+        '.dsk-thumb{position:absolute;right:-9px;width:6px;border-radius:3px;background:var(--dsw-alias-label-secondary);opacity:0;pointer-events:none;transition:opacity 180ms ease}',
+        '.dsk-thumb[data-on="true"]{opacity:.45}',
+        '.dsk-card{display:flex;flex-direction:column;overflow:hidden;border:0.5px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-card-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-bottom:0.5px solid var(--dsw-alias-border-l1)}',
+        '.dsk-card-title{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}',
         // The mark sits inline before the name: the row is a flex line, so the
         // gap applies between the mark, the name and any chips.
-        '.dsm-card-name{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}',
-        '.dsm-card-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:11px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}',
-        '.dsm-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--dsw-alias-border-l1)}',
-        '.dsm-row:hover{background:var(--dsw-alias-bg-layer-2)}',
-        '.dsm-row-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;text-align:left;border:0;background:transparent;padding:0;color:inherit;font:inherit;cursor:pointer}',
-        '.dsm-row-name{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;font-weight:550}',
-        '.dsm-row-name-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-        '.dsm-row-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:12px}',
-        '.dsm-row-actions{display:flex;align-items:center;gap:4px;flex:none}',
-        '.dsm-chip{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}',
-        '.dsm-chip-muted{background:transparent;color:var(--dsw-alias-label-secondary)}',
-        '.dsm-chip-error{background:transparent;color:var(--dsw-alias-state-error-primary)}',
-        '.dsm-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:44px 16px;color:var(--dsw-alias-label-secondary);text-align:center}',
-        '.dsm-empty-title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:600}',
-        '.dsm-empty-body{max-width:420px;font-size:12px;line-height:19px}',
-        '.dsm-note{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:10px;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}',
-        '.dsm-note-error{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}',
-        '.dsm-note-success{border-color:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-state-success-primary)}',
-        '.dsm-modal-backdrop{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.42)}',
-        '.dsm-modal{display:flex;flex-direction:column;width:min(680px,100%);max-height:min(80vh,720px);overflow:hidden;border:0.5px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));box-shadow:0 24px 64px rgba(0,0,0,.32)}',
-        '.dsm-modal-head{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:0.5px solid var(--dsw-alias-border-l1)}',
-        '.dsm-modal-title{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}',
-        '.dsm-modal-name{font-size:15px;font-weight:600}',
-        '.dsm-modal-body{overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}',
-        '.dsm-modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:0.5px solid var(--dsw-alias-border-l1)}',
-        '.dsm-field{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:start;font-size:12px}',
-        '.dsm-field-label{color:var(--dsw-alias-label-secondary)}',
-        '.dsm-field-value{min-width:0;overflow-wrap:anywhere}',
-        '.dsm-pre{margin:0;padding:12px;overflow:auto;border:0.5px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:19px;white-space:pre-wrap;word-break:break-word}',
-        '.dsm-form{display:flex;flex-direction:column;gap:12px}',
-        '.dsm-col{display:flex;flex-direction:column;gap:6px;min-width:0}',
-        '.dsm-label{font-size:12px;color:var(--dsw-alias-label-secondary)}',
-        '.dsm-input,.dsm-textarea{box-sizing:border-box;width:100%;padding:7px 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
-        '.dsm-textarea{min-height:150px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:19px}',
-        '.dsm-switch{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer;user-select:none}',
-        '.dsm-switch input{width:14px;height:14px;margin:0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}',
+        '.dsk-card-name{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}',
+        '.dsk-card-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:11px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}',
+        '.dsk-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--dsw-alias-border-l1)}',
+        '.dsk-row:hover{background:var(--dsw-alias-bg-layer-2)}',
+        '.dsk-row-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;text-align:left;border:0;background:transparent;padding:0;color:inherit;font:inherit;cursor:pointer}',
+        '.dsk-row-name{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;font-weight:550}',
+        '.dsk-row-name-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.dsk-row-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:12px}',
+        '.dsk-row-actions{display:flex;align-items:center;gap:4px;flex:none}',
+        '.dsk-chip{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}',
+        '.dsk-chip-muted{background:transparent;color:var(--dsw-alias-label-secondary)}',
+        '.dsk-chip-error{background:transparent;color:var(--dsw-alias-state-error-primary)}',
+        '.dsk-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:44px 16px;color:var(--dsw-alias-label-secondary);text-align:center}',
+        '.dsk-empty-title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:600}',
+        '.dsk-empty-body{max-width:420px;font-size:12px;line-height:19px}',
+        '.dsk-note{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:10px;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}',
+        '.dsk-note-error{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}',
+        '.dsk-note-success{border-color:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-state-success-primary)}',
+        '.dsk-modal-backdrop{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.42)}',
+        '.dsk-modal{display:flex;flex-direction:column;width:min(680px,100%);max-height:min(80vh,720px);overflow:hidden;border:0.5px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));box-shadow:0 24px 64px rgba(0,0,0,.32)}',
+        '.dsk-modal-head{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:0.5px solid var(--dsw-alias-border-l1)}',
+        '.dsk-modal-title{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}',
+        '.dsk-modal-name{font-size:15px;font-weight:600}',
+        '.dsk-modal-body{overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}',
+        '.dsk-modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:0.5px solid var(--dsw-alias-border-l1)}',
+        '.dsk-field{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:start;font-size:12px}',
+        '.dsk-field-label{color:var(--dsw-alias-label-secondary)}',
+        '.dsk-field-value{min-width:0;overflow-wrap:anywhere}',
+        '.dsk-pre{margin:0;padding:12px;overflow:auto;border:0.5px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:19px;white-space:pre-wrap;word-break:break-word}',
+        '.dsk-form{display:flex;flex-direction:column;gap:12px}',
+        '.dsk-col{display:flex;flex-direction:column;gap:6px;min-width:0}',
+        '.dsk-label{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+        '.dsk-input,.dsk-textarea{box-sizing:border-box;width:100%;padding:7px 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
+        '.dsk-textarea{min-height:150px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:19px}',
+        // `flex:none` and `nowrap` keep the box control-sized. Without them a
+        // column that also contains a lookalike switch (a foreign 36×20 pill)
+        // squeezes this label and the words stack vertically under the input.
+        '.dsk-switch{display:inline-flex;flex:none;align-items:center;gap:6px;font-size:12px;line-height:20px;white-space:nowrap;color:var(--dsw-alias-label-secondary);cursor:pointer;user-select:none}',
+        '.dsk-switch input{flex:none;width:14px;height:14px;margin:0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}',
         // The picker: one row per skill the repository holds. A row is a
         // button, because picking one IS the action — there is no second step.
-        '.dsm-picker{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}',
-        '.dsm-picker-item{display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;text-align:left;cursor:pointer}',
-        '.dsm-picker-item:hover{background:var(--dsw-alias-bg-layer-2)}',
-        '.dsm-picker-item input{width:14px;height:14px;margin:2px 0 0;flex:none;accent-color:var(--dsw-alias-brand-primary)}',
-        '.dsm-picker-copy{display:flex;flex-direction:column;gap:2px;min-width:0}',
-        '.dsm-picker-name{font-size:13px;font-weight:600}',
-        '.dsm-picker-desc{color:var(--dsw-alias-label-secondary);font-size:12px}',
-        '.dsm-picker-path{color:var(--dsw-alias-label-secondary);font-size:11px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}',
-        '.dsm-picker-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}',
-        '.dsm-hint{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:16px}',
-        '@media (max-width:640px){.dsm-page{padding:18px 14px 0}.dsm-thumb{right:-6px}.dsm-field{grid-template-columns:1fr}.dsm-row{flex-wrap:wrap}.dsm-row-actions{width:100%;justify-content:flex-end}}',
+        '.dsk-picker{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}',
+        '.dsk-picker-item{display:flex;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;text-align:left;cursor:pointer}',
+        '.dsk-picker-item:hover{background:var(--dsw-alias-bg-layer-2)}',
+        '.dsk-picker-item input{width:14px;height:14px;margin:2px 0 0;flex:none;accent-color:var(--dsw-alias-brand-primary)}',
+        '.dsk-picker-copy{display:flex;flex-direction:column;gap:2px;min-width:0}',
+        '.dsk-picker-name{font-size:13px;font-weight:600}',
+        '.dsk-picker-desc{color:var(--dsw-alias-label-secondary);font-size:12px}',
+        '.dsk-picker-path{color:var(--dsw-alias-label-secondary);font-size:11px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}',
+        '.dsk-picker-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}',
+        '.dsk-hint{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:16px}',
+        '@media (max-width:640px){.dsk-page{padding:18px 14px 0}.dsk-thumb{right:-6px}.dsk-field{grid-template-columns:1fr}.dsk-row{flex-wrap:wrap}.dsk-row-actions{width:100%;justify-content:flex-end}}',
       ].join('\n')
     }
 
@@ -1017,10 +1029,10 @@ window.__ModuleLoader__.load({
           {
             type: 'button',
             className: cx(
-              'dsm-button',
-              variant === 'primary' && 'dsm-button-primary',
-              variant === 'quiet' && 'dsm-button-quiet',
-              danger && 'dsm-button-danger',
+              'dsk-button',
+              variant === 'primary' && 'dsk-button-primary',
+              variant === 'quiet' && 'dsk-button-quiet',
+              danger && 'dsk-button-danger',
               className,
             ),
             ...rest,
@@ -1033,7 +1045,7 @@ window.__ModuleLoader__.load({
       function Toggle({ checked, onChange, label, disabled }) {
         return h(
           'label',
-          { className: 'dsm-switch', title: label },
+          { className: 'dsk-switch', title: label },
           h('input', { type: 'checkbox', checked, disabled, onChange: (event) => onChange(event.target.checked) }),
           h('span', null, label),
         )
@@ -1053,7 +1065,7 @@ window.__ModuleLoader__.load({
         return h(
           'div',
           {
-            className: 'dsm-modal-backdrop',
+            className: 'dsk-modal-backdrop',
             role: 'presentation',
             onMouseDown: (event) => {
               if (event.target === event.currentTarget) onClose()
@@ -1061,14 +1073,14 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+            { className: 'dsk-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
             h(
               'div',
-              { className: 'dsm-modal-head' },
-              h('div', { className: 'dsm-modal-title' }, h('span', { className: 'dsm-modal-name' }, title), subtitle ? h('span', { className: 'dsm-card-path' }, subtitle) : null),
+              { className: 'dsk-modal-head' },
+              h('div', { className: 'dsk-modal-title' }, h('span', { className: 'dsk-modal-name' }, title), subtitle ? h('span', { className: 'dsk-card-path' }, subtitle) : null),
             ),
-            h('div', { className: 'dsm-modal-body' }, children),
-            h('div', { className: 'dsm-modal-foot' }, footer),
+            h('div', { className: 'dsk-modal-body' }, children),
+            h('div', { className: 'dsk-modal-foot' }, footer),
           ),
         )
       }
@@ -1103,7 +1115,7 @@ window.__ModuleLoader__.load({
           // The tile is a small SVG document of its own; it is authored here,
           // never taken from a page or a request.
           return h('span', {
-            className: 'dsm-mark',
+            className: 'dsk-mark',
             style: { width: `${box}px`, height: `${box}px` },
             'aria-hidden': 'true',
             dangerouslySetInnerHTML: { __html: mark.svg },
@@ -1165,30 +1177,30 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-field' },
-            h('span', { className: 'dsm-field-label' }, t('field.description')),
-            h('span', { className: 'dsm-field-value' }, skill.description || t('value.none')),
+            { className: 'dsk-field' },
+            h('span', { className: 'dsk-field-label' }, t('field.description')),
+            h('span', { className: 'dsk-field-value' }, skill.description || t('value.none')),
           ),
           skill.whenToUse
-            ? h('div', { className: 'dsm-field' }, h('span', { className: 'dsm-field-label' }, t('field.whenToUse')), h('span', { className: 'dsm-field-value' }, skill.whenToUse))
+            ? h('div', { className: 'dsk-field' }, h('span', { className: 'dsk-field-label' }, t('field.whenToUse')), h('span', { className: 'dsk-field-value' }, skill.whenToUse))
             : null,
           h(
             'div',
-            { className: 'dsm-field' },
-            h('span', { className: 'dsm-field-label' }, t('field.invocation')),
+            { className: 'dsk-field' },
+            h('span', { className: 'dsk-field-label' }, t('field.invocation')),
             h(
               'span',
-              { className: 'dsm-field-value' },
+              { className: 'dsk-field-value' },
               [skill.modelInvocable ? t('invocation.model') : t('invocation.userOnly'), skill.userInvocable ? t('invocation.slash') : t('invocation.noSlash')].join(' · '),
             ),
           ),
           h(
             'div',
-            { className: 'dsm-field' },
-            h('span', { className: 'dsm-field-label' }, t('field.status')),
-            h('span', { className: 'dsm-field-value' }, skill.disabled ? t('status.disabled') : t('status.enabled')),
+            { className: 'dsk-field' },
+            h('span', { className: 'dsk-field-label' }, t('field.status')),
+            h('span', { className: 'dsk-field-value' }, skill.disabled ? t('status.disabled') : t('status.enabled')),
           ),
-          detail.loading ? h('div', { className: 'dsm-note' }, t('loading.body')) : h('pre', { className: 'dsm-pre' }, String(skill.body ?? '')),
+          detail.loading ? h('div', { className: 'dsk-note' }, t('loading.body')) : h('pre', { className: 'dsk-pre' }, String(skill.body ?? '')),
         )
       }
 
@@ -1213,13 +1225,13 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-form' },
+            { className: 'dsk-form' },
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('addRoot.label')),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('addRoot.label')),
               h('input', {
-                className: 'dsm-input',
+                className: 'dsk-input',
                 value: path,
                 placeholder: t('addRoot.placeholder'),
                 onChange: (event) => setPath(event.target.value),
@@ -1228,7 +1240,7 @@ window.__ModuleLoader__.load({
                 },
               }),
             ),
-            h('div', { className: 'dsm-note' }, t('addRoot.hint')),
+            h('div', { className: 'dsk-note' }, t('addRoot.hint')),
           ),
         )
       }
@@ -1257,29 +1269,29 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-form' },
+            { className: 'dsk-form' },
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('create.root')),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('create.root')),
               h(
                 'select',
-                { className: 'dsm-input', value: rootKey, onChange: (event) => setRootKey(event.target.value) },
+                { className: 'dsk-input', value: rootKey, onChange: (event) => setRootKey(event.target.value) },
                 roots.map((root) => h('option', { key: root.key, value: root.key }, rootLabel(root))),
               ),
             ),
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('create.name')),
-              h('input', { className: 'dsm-input', value: name, placeholder: 'my-skill', onChange: (event) => setName(event.target.value) }),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('create.name')),
+              h('input', { className: 'dsk-input', value: name, placeholder: 'my-skill', onChange: (event) => setName(event.target.value) }),
             ),
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('create.description')),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('create.description')),
               h('input', {
-                className: 'dsm-input',
+                className: 'dsk-input',
                 value: description,
                 placeholder: t('create.descriptionPlaceholder'),
                 onChange: (event) => setDescription(event.target.value),
@@ -1287,15 +1299,15 @@ window.__ModuleLoader__.load({
             ),
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('create.whenToUse')),
-              h('input', { className: 'dsm-input', value: whenToUse, placeholder: t('value.optional'), onChange: (event) => setWhenToUse(event.target.value) }),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('create.whenToUse')),
+              h('input', { className: 'dsk-input', value: whenToUse, placeholder: t('value.optional'), onChange: (event) => setWhenToUse(event.target.value) }),
             ),
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('create.body')),
-              h('textarea', { className: 'dsm-textarea', value: body, placeholder: t('create.bodyPlaceholder'), onChange: (event) => setBody(event.target.value) }),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('create.body')),
+              h('textarea', { className: 'dsk-textarea', value: body, placeholder: t('create.bodyPlaceholder'), onChange: (event) => setBody(event.target.value) }),
             ),
           ),
         )
@@ -1331,28 +1343,28 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-form' },
+            { className: 'dsk-form' },
             copying
               ? h(
                   'div',
-                  { className: 'dsm-col' },
-                  h('span', { className: 'dsm-label' }, t('install.source')),
-                  h('span', { className: 'dsm-card-path', title: source.path }, source.path),
+                  { className: 'dsk-col' },
+                  h('span', { className: 'dsk-label' }, t('install.source')),
+                  h('span', { className: 'dsk-card-path', title: source.path }, source.path),
                 )
               : null,
             blocked
               ? null
               : h(
                   'div',
-                  { className: 'dsm-col' },
-                  h('span', { className: 'dsm-label' }, t('create.root')),
+                  { className: 'dsk-col' },
+                  h('span', { className: 'dsk-label' }, t('create.root')),
                   h(
                     'select',
-                    { className: 'dsm-input', value: rootKey, onChange: (event) => setRootKey(event.target.value) },
+                    { className: 'dsk-input', value: rootKey, onChange: (event) => setRootKey(event.target.value) },
                     roots.map((root) => h('option', { key: root.key, value: root.key }, rootLabel(root))),
                   ),
                 ),
-            h('div', { className: 'dsm-note' }, blocked ? t('install.noTarget') : t('install.hint')),
+            h('div', { className: 'dsk-note' }, blocked ? t('install.noTarget') : t('install.hint')),
           ),
         )
       }
@@ -1410,13 +1422,13 @@ window.__ModuleLoader__.load({
           },
           h(
             'div',
-            { className: 'dsm-form' },
+            { className: 'dsk-form' },
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('remote.url')),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('remote.url')),
               h('input', {
-                className: 'dsm-input',
+                className: 'dsk-input',
                 value: url,
                 placeholder: t('remote.urlPlaceholder'),
                 'aria-label': t('remote.url'),
@@ -1432,10 +1444,10 @@ window.__ModuleLoader__.load({
             ),
             h(
               'div',
-              { className: 'dsm-col' },
-              h('span', { className: 'dsm-label' }, t('remote.token')),
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('remote.token')),
               h('input', {
-                className: 'dsm-input',
+                className: 'dsk-input',
                 type: 'password',
                 value: token,
                 placeholder: t('remote.tokenPlaceholder'),
@@ -1446,55 +1458,55 @@ window.__ModuleLoader__.load({
                   store.setDialog({ kind: 'remote', url, rootKey, token: event.target.value })
                 },
               }),
-              h('span', { className: 'dsm-hint' }, t('remote.tokenHint')),
+              h('span', { className: 'dsk-hint' }, t('remote.tokenHint')),
             ),
             blocked
               ? null
               : h(
                   'div',
-                  { className: 'dsm-col' },
-                  h('span', { className: 'dsm-label' }, t('remote.root')),
+                  { className: 'dsk-col' },
+                  h('span', { className: 'dsk-label' }, t('remote.root')),
                   h(
                     'select',
-                    { className: 'dsm-input', value: rootKey, disabled: busy, onChange: (event) => setRootKey(event.target.value) },
+                    { className: 'dsk-input', value: rootKey, disabled: busy, onChange: (event) => setRootKey(event.target.value) },
                     roots.map((root) => h('option', { key: root.key, value: root.key }, rootLabel(root))),
                   ),
                 ),
-            h('div', { className: 'dsm-note' }, blocked ? t('remote.noTarget') : t('remote.hint')),
-            dialog.error ? h('div', { className: 'dsm-note dsm-note-error', role: 'alert' }, dialog.error) : null,
+            h('div', { className: 'dsk-note' }, blocked ? t('remote.noTarget') : t('remote.hint')),
+            dialog.error ? h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, dialog.error) : null,
             candidates.length > 0
               ? h(
                   'div',
-                  { className: 'dsm-col' },
-                  h('span', { className: 'dsm-label' }, t('remote.choose')),
+                  { className: 'dsk-col' },
+                  h('span', { className: 'dsk-label' }, t('remote.choose')),
                   dialog.truncated
-                    ? h('div', { className: 'dsm-note' }, fill(t('remote.truncated'), { shown: candidates.length, total: dialog.total }))
+                    ? h('div', { className: 'dsk-note' }, fill(t('remote.truncated'), { shown: candidates.length, total: dialog.total }))
                     : null,
                   h(
                     'div',
-                    { className: 'dsm-picker' },
+                    { className: 'dsk-picker' },
                     candidates.map((candidate) => {
                       const checked = selectedPaths.includes(candidate.path)
                       return h(
                         'label',
-                        { key: candidate.path, className: 'dsm-picker-item' },
+                        { key: candidate.path, className: 'dsk-picker-item' },
                         h('input', {
                           type: 'checkbox',
                           checked,
                           disabled: busy,
                           onChange: (event) => choose(candidate.path, event.target.checked),
                         }),
-                        h('span', { className: 'dsm-picker-copy' },
-                          h('span', { className: 'dsm-picker-name' }, candidate.name || candidate.path),
-                          candidate.description ? h('span', { className: 'dsm-picker-desc' }, candidate.description) : null,
-                          h('span', { className: 'dsm-picker-path' }, candidate.path),
+                        h('span', { className: 'dsk-picker-copy' },
+                          h('span', { className: 'dsk-picker-name' }, candidate.name || candidate.path),
+                          candidate.description ? h('span', { className: 'dsk-picker-desc' }, candidate.description) : null,
+                          h('span', { className: 'dsk-picker-path' }, candidate.path),
                         ),
                       )
                     }),
                   ),
                   h(
                     'div',
-                    { className: 'dsm-picker-actions' },
+                    { className: 'dsk-picker-actions' },
                     h(Action, {
                       variant: 'quiet',
                       disabled: busy || selectedPaths.length === candidates.length,
@@ -1524,23 +1536,23 @@ window.__ModuleLoader__.load({
         const copyable = external && skill.entryKind === 'directory'
         return h(
           'div',
-          { className: 'dsm-row' },
+          { className: 'dsk-row' },
           h(
             'button',
-            { type: 'button', className: 'dsm-row-main', onClick: () => store.openDetail(rootKey, skill), title: t('action.preview') },
+            { type: 'button', className: 'dsk-row-main', onClick: () => store.openDetail(rootKey, skill), title: t('action.preview') },
             h(
               'span',
-              { className: 'dsm-row-name' },
-              h('span', { className: 'dsm-row-name-text' }, skill.name),
+              { className: 'dsk-row-name' },
+              h('span', { className: 'dsk-row-name-text' }, skill.name),
               skill.disabled ? h(Chip, null, t('chip.disabled')) : null,
               !skill.modelInvocable && !skill.disabled ? h(Chip, { tone: 'muted' }, t('chip.userOnly')) : null,
               issues.includes('invalid-flag') ? h(Chip, { tone: 'error' }, t('chip.invalid')) : null,
             ),
-            h('span', { className: 'dsm-row-desc' }, skill.description || t('value.noDescription')),
+            h('span', { className: 'dsk-row-desc' }, skill.description || t('value.noDescription')),
           ),
           h(
             'div',
-            { className: 'dsm-row-actions' },
+            { className: 'dsk-row-actions' },
             copyable
               ? h(
                   Action,
@@ -1567,16 +1579,16 @@ window.__ModuleLoader__.load({
       function TrashRow({ rootKey, entry }) {
         return h(
           'div',
-          { className: 'dsm-row' },
+          { className: 'dsk-row' },
           h(
             'div',
-            { className: 'dsm-row-main', style: { cursor: 'default' } },
-            h('span', { className: 'dsm-row-name' }, h('span', { className: 'dsm-row-name-text' }, entry.name)),
-            h('span', { className: 'dsm-row-desc' }, `${entry.entryName} · ${t('trash.label')}`),
+            { className: 'dsk-row-main', style: { cursor: 'default' } },
+            h('span', { className: 'dsk-row-name' }, h('span', { className: 'dsk-row-name-text' }, entry.name)),
+            h('span', { className: 'dsk-row-desc' }, `${entry.entryName} · ${t('trash.label')}`),
           ),
           h(
             'div',
-            { className: 'dsm-row-actions' },
+            { className: 'dsk-row-actions' },
             h(Action, { onClick: () => store.restore(rootKey, entry.entryName) }, t('action.restore')),
             h(Action, { variant: 'quiet', danger: true, onClick: () => store.purge(rootKey, entry.entryName) }, t('action.purge')),
           ),
@@ -1595,22 +1607,22 @@ window.__ModuleLoader__.load({
         const external = root.kind === 'agent' || root.kind === 'custom'
         return h(
           'section',
-          { className: 'dsm-card' },
+          { className: 'dsk-card' },
           h(
             'div',
-            { className: 'dsm-card-head' },
+            { className: 'dsk-card-head' },
             h(
               'div',
-              { className: 'dsm-card-title' },
+              { className: 'dsk-card-title' },
               h(
                 'span',
-                { className: 'dsm-card-name' },
+                { className: 'dsk-card-name' },
                 root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 15 }) : null,
                 rootLabel(root),
-                h('span', { className: 'dsm-root-count' }, root.skills.length),
+                h('span', { className: 'dsk-root-count' }, root.skills.length),
                 root.kind === 'agent' ? h(Chip, { tone: 'muted' }, t('chip.auto')) : null,
               ),
-              h('span', { className: 'dsm-card-path', title: root.path }, root.path),
+              h('span', { className: 'dsk-card-path', title: root.path }, root.path),
             ),
             h(Action, { onClick: () => store.reveal(root.key, undefined) }, t('action.revealFolder')),
             root.kind === 'custom'
@@ -1620,16 +1632,16 @@ window.__ModuleLoader__.load({
           visible.length === 0
             ? h(
                 'div',
-                { className: 'dsm-empty' },
-                h('span', { className: 'dsm-empty-body' }, query.length > 0 ? t('empty.noMatch') : root.exists ? t('empty.rootEmpty') : t('empty.rootMissing')),
+                { className: 'dsk-empty' },
+                h('span', { className: 'dsk-empty-body' }, query.length > 0 ? t('empty.noMatch') : root.exists ? t('empty.rootEmpty') : t('empty.rootMissing')),
               )
             : visible.map((skill) => h(SkillRow, { key: `${root.key}:${skill.entryName}`, rootKey: root.key, skill, external })),
-          hidden > 0 ? h('div', { className: 'dsm-note' }, fill(t('list.limit'), { count: RENDER_LIMIT })) : null,
+          hidden > 0 ? h('div', { className: 'dsk-note' }, fill(t('list.limit'), { count: RENDER_LIMIT })) : null,
           trash.length > 0
             ? h(
                 'div',
-                { className: 'dsm-card-head', style: { borderTop: '0.5px solid var(--dsw-alias-border-l1)' } },
-                h('div', { className: 'dsm-card-title' }, h('span', { className: 'dsm-card-name' }, fill(t('trash.title'), { count: trash.length }))),
+                { className: 'dsk-card-head', style: { borderTop: '0.5px solid var(--dsw-alias-border-l1)' } },
+                h('div', { className: 'dsk-card-title' }, h('span', { className: 'dsk-card-name' }, fill(t('trash.title'), { count: trash.length }))),
                 h(Action, { variant: 'quiet', onClick: () => store.emptyTrash(root.key) }, t('action.emptyTrash')),
               )
             : null,
@@ -1717,18 +1729,18 @@ window.__ModuleLoader__.load({
 
         return h(
           'div',
-          { className: 'dsm-body', 'data-dsm-scroll': String(revision) },
+          { className: 'dsk-body', 'data-dsk-scroll': String(revision) },
           h(
             'div',
             {
-              className: 'dsm-list',
+              className: 'dsk-list',
               ref: (node) => {
                 scrollNode = node
               },
             },
             children,
           ),
-          h('div', { className: 'dsm-thumb', 'data-on': bar.on ? 'true' : 'false', style: { top: `${bar.top}px`, height: `${bar.height}px` } }),
+          h('div', { className: 'dsk-thumb', 'data-on': bar.on ? 'true' : 'false', style: { top: `${bar.top}px`, height: `${bar.height}px` } }),
         )
       }
 
@@ -1755,22 +1767,22 @@ window.__ModuleLoader__.load({
 
         return h(
           'div',
-          { className: 'dsm-page' },
+          { className: 'dsk-page' },
           h('style', null, stylesheet()),
           h(
             'div',
-            { className: 'dsm-head' },
-            h('h2', { className: 'dsm-title' }, t('title')),
-            h('p', { className: 'dsm-subtitle' }, fill(t('subtitle'), { total, roots: roots.length, enabled })),
+            { className: 'dsk-head' },
+            h('h2', { className: 'dsk-title' }, t('title')),
+            h('p', { className: 'dsk-subtitle' }, fill(t('subtitle'), { total, roots: roots.length, enabled })),
           ),
           h(
             'div',
-            { className: 'dsm-toolbar' },
+            { className: 'dsk-toolbar' },
             h(
               'div',
-              { className: 'dsm-grow' },
+              { className: 'dsk-grow' },
               h('input', {
-                className: 'dsm-search',
+                className: 'dsk-search',
                 type: 'search',
                 value: state.query,
                 placeholder: t('search.placeholder'),
@@ -1792,11 +1804,11 @@ window.__ModuleLoader__.load({
               state.refreshing ? t('action.reloading') : t('action.reload'),
             ),
             // A reload that finds the same disk changes nothing on screen. The
-            // stamp is the visible proof that the read ran, and `data-dsm-read`
+            // stamp is the visible proof that the read ran, and `data-dsk-read`
             // lets a test observe it without scraping formatted text.
             h(
               'span',
-              { className: 'dsm-read-stamp', 'data-dsm-read': String(state.refreshedAt) },
+              { className: 'dsk-read-stamp', 'data-dsk-read': String(state.refreshedAt) },
               formatClock(state.refreshedAt) === ''
                 ? ''
                 : fill(t('meta.refreshed'), { time: formatClock(state.refreshedAt) }),
@@ -1805,12 +1817,12 @@ window.__ModuleLoader__.load({
           roots.length > 1
             ? h(
                 'div',
-                { className: 'dsm-roots' },
+                { className: 'dsk-roots' },
                 h(
                   'button',
-                  { type: 'button', className: 'dsm-root-tab', 'aria-pressed': state.rootFilter === undefined, onClick: () => store.setRootFilter(undefined) },
+                  { type: 'button', className: 'dsk-root-tab', 'aria-pressed': state.rootFilter === undefined, onClick: () => store.setRootFilter(undefined) },
                   t('filter.all'),
-                  h('span', { className: 'dsm-root-count' }, String(total)),
+                  h('span', { className: 'dsk-root-count' }, String(total)),
                 ),
                 roots.map((root) =>
                   h(
@@ -1818,32 +1830,32 @@ window.__ModuleLoader__.load({
                     {
                       key: root.key,
                       type: 'button',
-                      className: 'dsm-root-tab',
+                      className: 'dsk-root-tab',
                       'aria-pressed': state.rootFilter === root.key,
                       onClick: () => store.setRootFilter(root.key),
                     },
                     root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 13 }) : null,
                     rootLabel(root),
-                    h('span', { className: 'dsm-root-count' }, String(root.skills?.length ?? 0)),
+                    h('span', { className: 'dsk-root-count' }, String(root.skills?.length ?? 0)),
                   ),
                 ),
               )
             : null,
-          state.notice ? h('div', { className: cx('dsm-note', state.notice.tone === 'success' && 'dsm-note-success'), role: 'status' }, state.notice.text) : null,
-          state.error ? h('div', { className: 'dsm-note dsm-note-error', role: 'alert' }, state.error) : null,
-          warnings.length > 0 ? h('div', { className: 'dsm-note' }, warnings.map((warning) => String(warning?.message ?? '')).join(' · ')) : null,
+          state.notice ? h('div', { className: cx('dsk-note', state.notice.tone === 'success' && 'dsk-note-success'), role: 'status' }, state.notice.text) : null,
+          state.error ? h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, state.error) : null,
+          warnings.length > 0 ? h('div', { className: 'dsk-note' }, warnings.map((warning) => String(warning?.message ?? '')).join(' · ')) : null,
           h(
             ScrollArea,
             { revision: `${total}:${visibleRoots.length}` },
             state.loading && state.data === undefined
-              ? h('div', { className: 'dsm-empty' }, h('span', { className: 'dsm-empty-body' }, t('loading.page')))
+              ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, t('loading.page')))
               : visibleRoots.length === 0
                 ? h(
                     'div',
-                    { className: 'dsm-empty' },
+                    { className: 'dsk-empty' },
                     h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, h(SkillsMark)),
-                    h('span', { className: 'dsm-empty-title' }, t('empty.title')),
-                    h('span', { className: 'dsm-empty-body' }, t('empty.body')),
+                    h('span', { className: 'dsk-empty-title' }, t('empty.title')),
+                    h('span', { className: 'dsk-empty-body' }, t('empty.body')),
                   )
                 : visibleRoots.map((root) => h(RootCard, { key: root.key, root, query: state.query })),
           ),
@@ -1878,10 +1890,10 @@ window.__ModuleLoader__.load({
           const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
           return h(
             'div',
-            { className: 'dsm-page' },
+            { className: 'dsk-page' },
             h('style', null, stylesheet()),
-            h('h2', { className: 'dsm-title' }, t('title')),
-            h('div', { className: 'dsm-note dsm-note-error', role: 'alert' }, `${t('error.render')} ${message}`),
+            h('h2', { className: 'dsk-title' }, t('title')),
+            h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, `${t('error.render')} ${message}`),
           )
         }
       }
