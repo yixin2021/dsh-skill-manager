@@ -746,23 +746,39 @@ function revealPath(path) {
  * These are well-known locations, not guesses: Codex, CodeBuddy and Claude
  * Code each use one, and each honours an environment variable to move it.
  * Discovery happens on every read, so installing one of those agents later
- * needs no configuration here, and deleting a library removes it from the list.
+ * needs no configuration here, and deleting the agent's home removes it from
+ * the list.
  *
- * @returns candidate `{ agent, path }` pairs, whether or not they exist.
+ * Each candidate carries the agent's own home as well as the `skills/`
+ * directory inside it: an agent that is installed but has never been given a
+ * skill yet has the home and no library, and that state still has to be
+ * manageable — otherwise the switch, the install target and the copy action
+ * for that agent would all be missing exactly when they are needed first.
+ *
+ * @returns candidate `{ agent, home, path }` triples, whether or not they exist.
  */
 function agentLibraryCandidates() {
   const home = homedir()
-  return [
-    { agent: 'codex', path: join(process.env.CODEX_HOME || join(home, '.codex'), 'skills') },
-    { agent: 'claude', path: join(process.env.CLAUDE_CONFIG_DIR || join(home, '.claude'), 'skills') },
-    { agent: 'workbuddy', path: join(process.env.WORKBUDDY_HOME || join(home, '.workbuddy'), 'skills') },
-    { agent: 'codebuddy', path: join(process.env.CODEBUDDY_HOME || join(home, '.codebuddy'), 'skills') },
-  ]
+  const homes = {
+    codex: process.env.CODEX_HOME || join(home, '.codex'),
+    claude: process.env.CLAUDE_CONFIG_DIR || join(home, '.claude'),
+    workbuddy: process.env.WORKBUDDY_HOME || join(home, '.workbuddy'),
+    codebuddy: process.env.CODEBUDDY_HOME || join(home, '.codebuddy'),
+  }
+  return Object.entries(homes).map(([agent, agentHome]) => ({ agent, home: agentHome, path: join(agentHome, 'skills') }))
 }
 
 /**
- * The agent libraries that exist right now.
- * @returns `{ agent, path }` pairs, in a stable order.
+ * The agent libraries that are worth listing right now.
+ *
+ * A library is listed when it exists, and also when the agent itself is
+ * installed (its home directory is there) even though the library has not been
+ * created yet. The panel shows that root as "not created yet" and every write
+ * to it recovers: install and import both `mkdir` the root before they write,
+ * so the first skill a person installs for Claude also creates `~/.claude/
+ * skills` without a separate step.
+ *
+ * @returns `{ agent, home, path }` triples, in a stable order.
  */
 async function discoverAgentLibraries() {
   const found = []
@@ -770,23 +786,56 @@ async function discoverAgentLibraries() {
   for (const candidate of agentLibraryCandidates()) {
     if (seen.has(candidate.path)) continue
     seen.add(candidate.path)
-    const info = await stat(candidate.path).catch(() => undefined)
-    if (info === undefined || !info.isDirectory()) continue
-    found.push(candidate)
+    const library = await stat(candidate.path).catch(() => undefined)
+    if (library !== undefined && library.isDirectory()) {
+      found.push(candidate)
+      continue
+    }
+    // The agent is installed (its home exists) but has no skills directory
+    // yet: list it so the first skill has somewhere to go.
+    const agentHome = await stat(candidate.home).catch(() => undefined)
+    if (agentHome !== undefined && agentHome.isDirectory()) found.push(candidate)
   }
   return found
 }
 
 /**
- * Every root beyond the four DSH scans itself: the discovered agent libraries
- * and the directories a person added. Both are managed like the roots above,
- * because this plugin is the provider that hands them to the model.
+ * The Claude Code skill directories the open workspaces carry.
  *
+ * Claude Code reads a repository's own skills from `<repo>/.claude/skills`, and
+ * DSH does not scan that path, so a skill living there would be listed by this
+ * panel and invisible to the model — the one combination the switch cannot be
+ * honest about. Serving it here is what makes the switch on those rows real.
+ *
+ * Only directories that exist are returned: a workspace without Claude skills
+ * must not gain an empty root in the catalog.
+ *
+ * @param ctx - Host context.
+ * @returns `{ agent, path }` pairs, one per workspace that has the directory.
+ */
+async function workspaceClaudeRoots(ctx) {
+  const found = []
+  for (const workspace of workspaceList(ctx)) {
+    const path = join(workspace.path, '.claude', 'skills')
+    const info = await stat(path).catch(() => undefined)
+    if (info === undefined || !info.isDirectory()) continue
+    found.push({ agent: 'claude', path })
+  }
+  return found
+}
+
+/**
+ * Every root beyond the four DSH scans itself: the discovered agent libraries,
+ * the Claude libraries the open workspaces carry, and the directories a person
+ * added. All are managed like the roots above, because this plugin is the
+ * provider that hands them to the model.
+ *
+ * @param ctx - Host context.
  * @returns `{ agent, path }` pairs.
  */
-async function extraRoots() {
+async function extraRoots(ctx) {
   const manual = (await readCustomRoots()).map((path) => ({ agent: 'custom', path }))
-  return [...(await discoverAgentLibraries()), ...manual]
+  return [...(await discoverAgentLibraries()), ...(await workspaceClaudeRoots(ctx)), ...manual]
 }
 
 /**
@@ -872,16 +921,17 @@ let skillsControl
  * across providers by rank, but two added directories carrying the same name
  * must not both appear, or the catalog would be ambiguous.
  *
+ * @param ctx - Host context, read for the open workspaces on every list.
  * @param control - DSH's lifecycle and cache-invalidation handle.
  * @returns the provider DSH reads.
  */
-function createCustomProvider(control) {
+function createCustomProvider(ctx, control) {
   skillsControl = control
   const providerName = 'dsh-skills-custom'
   return {
     name: providerName,
     async list() {
-      const paths = await extraRoots()
+      const paths = await extraRoots(ctx)
       const candidates = []
       const seen = new Set()
       for (const [index, entry] of paths.entries()) {
@@ -1063,12 +1113,12 @@ async function answerRequest(ctx, request) {
 export function apply(ctx) {
   const skills = typeof ctx.get === 'function' ? ctx.get('skills') : undefined
   if (skills !== undefined && typeof skills.registerProvider === 'function') {
-    ctx.effect(() => skills.registerProvider((control) => createCustomProvider(control)), 'dsh-skills: provider')
+    ctx.effect(() => skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skills: provider')
   } else if (typeof ctx.inject === 'function') {
     // The catalog service may mount after this plugin. Waiting for it keeps the
     // added directories usable instead of silently browsing-only.
     ctx.inject(['skills'], (scoped) => {
-      scoped.effect(() => scoped.skills.registerProvider((control) => createCustomProvider(control)), 'dsh-skills: provider')
+      scoped.effect(() => scoped.skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skills: provider')
     })
   }
   ctx.effect(
@@ -1113,5 +1163,6 @@ export const internals = {
   createCustomProvider,
   agentLibraryCandidates,
   discoverAgentLibraries,
+  workspaceClaudeRoots,
   extraRoots,
 }

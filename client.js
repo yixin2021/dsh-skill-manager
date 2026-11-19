@@ -73,6 +73,7 @@ window.__ModuleLoader__.load({
       'action.preview': 'Preview instructions',
       'filter.all': 'All roots',
       'root.project': 'Project · {name}',
+      'root.projectLibrary': '{name} · {library}',
       'root.dsh': 'DeepSeek Harness',
       'root.agents': 'Agents',
       'root.custom': 'Added · {name}',
@@ -119,7 +120,7 @@ window.__ModuleLoader__.load({
       'empty.body': 'Install a folder that contains SKILL.md, import skills from GitHub, or write one with New skill. Disabled skills stay on disk under .disabled and disappear from every catalog.',
       'empty.noMatch': 'No skill matches that search.',
       'empty.rootEmpty': 'This root has no skills yet.',
-      'empty.rootMissing': 'This root does not exist yet. Create a skill to create it.',
+      'empty.rootMissing': 'This library has not been created yet. Creating or installing a skill creates it.',
       'list.limit': 'Showing the first {count} rows. Narrow the search to see the rest.',
       'trash.title': 'Uninstalled ({count})',
       'trash.label': 'in trash',
@@ -196,6 +197,7 @@ window.__ModuleLoader__.load({
       'action.preview': '查看技能说明',
       'filter.all': '全部目录',
       'root.project': '项目 · {name}',
+      'root.projectLibrary': '{name} · {library}',
       'root.dsh': 'DeepSeek Harness',
       'root.agents': 'Agents',
       'root.custom': '自定义 · {name}',
@@ -242,7 +244,7 @@ window.__ModuleLoader__.load({
       'empty.body': '安装一个包含 SKILL.md 的文件夹，从 GitHub 批量导入技能，或用「新建技能」写一个。停用的技能保留在磁盘的 .disabled 目录里，对所有目录不可见。',
       'empty.noMatch': '没有匹配的技能。',
       'empty.rootEmpty': '该目录还没有技能。',
-      'empty.rootMissing': '该目录尚未创建，新建一个技能即可创建它。',
+      'empty.rootMissing': '该目录尚未创建，新建或安装一个技能即可创建它。',
       'list.limit': '仅显示前 {count} 条，请用搜索缩小范围。',
       'trash.title': '已卸载（{count}）',
       'trash.label': '在回收站',
@@ -1135,6 +1137,13 @@ window.__ModuleLoader__.load({
         )
       }
 
+      /** The folder each project-scope library is named after, keyed by source. */
+      const PROJECT_LIBRARY = {
+        'project-dsh': '.dsh/skills',
+        'project-agents': '.agents/skills',
+        'project-claude': '.claude/skills',
+      }
+
       /** @returns the readable name of one root. */
       function rootLabel(root) {
         if (root.agent !== undefined && root.agent !== 'custom' && root.kind === 'agent') {
@@ -1146,7 +1155,11 @@ window.__ModuleLoader__.load({
         }
         if (root.kind === 'project') {
           const name = root.workspaceTitle || String(root.workspacePath ?? '').split('/').filter(Boolean).pop() || root.path
-          return fill(t('root.project'), { name })
+          // Three project libraries can live in one workspace (`.dsh`, `.agents`
+          // and Claude's `.claude`), so the folder is part of the label: without
+          // it the filter tabs would read as three identical entries.
+          const library = PROJECT_LIBRARY[root.source]
+          return library === undefined ? fill(t('root.project'), { name }) : fill(t('root.projectLibrary'), { name, library })
         }
         return root.source === 'user-agents' ? t('root.agents') : t('root.dsh')
       }
@@ -1624,7 +1637,12 @@ window.__ModuleLoader__.load({
               ),
               h('span', { className: 'dsk-card-path', title: root.path }, root.path),
             ),
-            h(Action, { onClick: () => store.reveal(root.key, undefined) }, t('action.revealFolder')),
+            // A root that has not been created yet has nothing to show in the
+            // file manager, so the action is left out rather than offered and
+            // refused. The install button above already creates it.
+            root.exists === false
+              ? null
+              : h(Action, { onClick: () => store.reveal(root.key, undefined) }, t('action.revealFolder')),
             root.kind === 'custom'
               ? h(Action, { variant: 'quiet', danger: true, onClick: () => store.removeRoot(root) }, t('action.remove'))
               : null,
@@ -1757,8 +1775,11 @@ window.__ModuleLoader__.load({
         const enabled = roots.reduce((sum, root) => sum + (root.skills ?? []).filter((skill) => !skill.disabled).length, 0)
         // Every listed root can take an install: the Host writes into another
         // agent's library and into an added directory exactly as it writes into
-        // DSH's own. Only a root that is on disk no longer is skipped.
-        const manageable = roots.filter((root) => root.kind === 'user' || root.exists)
+        // DSH's own, and it creates the directory when it is not there yet.
+        // Only a project root that is on disk no longer is skipped: a workspace
+        // may have moved away, while a home-level library (DSH's own, or one an
+        // installed agent has not created yet) is always addressable.
+        const manageable = roots.filter((root) => root.kind !== 'project' || root.exists)
         // The filter may point at a directory that has since disappeared.
         // Falling back to the first usable root keeps the dialogs usable
         // instead of preselecting a target the Host will refuse.

@@ -30,7 +30,8 @@ for turning one off without editing files. This plugin adds that surface.
 | **New skill** | Write a bundle with a valid frontmatter block from a form. |
 | **Uninstall safely** | Uninstall moves the entry to a root-local `.trash`; restore it later, or delete it for good. |
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
-| **Known libraries** | Codex, Claude Code, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. |
+| **Known libraries** | Codex, Claude Code, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
+| **Claude Code skills** | Claude Code's user library (`~/.claude/skills`) and each repository's own `.claude/skills` are listed, switched, installed into and loaded by DSH. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -154,7 +155,14 @@ coding agent needs no configuration. This is the order the page lists them in:
 
 Discovery runs on every read rather than being remembered, so installing
 another agent later just works, and deleting a library removes it from the
-list. They are managed like DSH's own roots: the plugin is the provider that
+list. A library that does not exist yet is still listed while its agent is
+installed — Claude Code with a `~/.claude/settings.json` but no `skills/`
+folder, for instance — and shows "not created yet" instead of disappearing:
+that is exactly the state in which someone wants to give that agent its first
+skill, and the install and import actions create the folder as they write.
+Removing the agent's own home removes the row.
+
+They are managed like DSH's own roots: the plugin is the provider that
 hands them to the model, so the switch changes the catalog the next step reads.
 The bytes still belong to that agent, and uninstalling only moves them into that
 library's own `.trash`, where they can be restored.
@@ -166,6 +174,23 @@ knot and the Claude asterisk (`openai.svg`, `claude.svg` from
 codebuddy.ai and workbuddy.cn. The monochrome ones inherit `currentColor` so
 they follow the theme; the two tiles keep their own gradients. Brand marks
 belong to their owners and identify the directory the skills came from.
+
+### Claude Code, in both scopes
+
+Claude Code reads skills from two places, and both are managed here:
+
+| Scope | Path | Root key |
+|---|---|---|
+| User | `$CLAUDE_CONFIG_DIR/skills` (usually `~/.claude/skills`) | `agent:claude` |
+| Repository | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+
+The repository scope is listed per open workspace, and only when the directory
+exists — a repository that has never carried Claude skills gains no empty row.
+Because DSH does not scan `.claude`, the plugin serves these directories through
+its own provider, so disabling a skill there really removes it from the model
+catalog rather than merely hiding it in the panel. Project rows name the folder
+they come from (`Project · repo · .claude/skills`), since one workspace can hold
+`.dsh/skills`, `.agents/skills` and `.claude/skills` at once.
 
 ### Added directories
 

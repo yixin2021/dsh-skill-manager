@@ -714,6 +714,68 @@ test('an added directory is browsable, removable, and switchable', async () => {
   assert.match(dialog, /\/home\/u\/\.claude\/skills\/alpha/, 'the dialog names the source')
 })
 
+test('a library the agent has not created yet is listed and offered as an install target', async () => {
+  // Claude Code installed, no ~/.claude/skills yet. The row must exist (that is
+  // where the switch, the copy action and the install target come from) and it
+  // must say why it is empty instead of hiding.
+  const roots = [
+    { key: 'user-dsh', kind: 'user', source: 'user-dsh', agent: 'dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] },
+    { key: 'agent:claude', kind: 'agent', source: 'custom', agent: 'claude', path: '/home/u/.claude/skills', exists: false, skills: [], trash: [] },
+  ]
+  const app = mountClient({ roots })
+  await app.settle()
+
+  assert.match(app.text(), /Claude Code/, 'Claude Code has a row')
+  assert.match(app.text(), /尚未创建/, 'the row explains that the library is not on disk yet')
+
+  // Nothing to reveal in the file manager, so the action is not offered.
+  const revealButtons = app.buttons().filter((entry) => entry.text === '打开目录')
+  assert.equal(revealButtons.length, 1, 'only the root that exists offers to open its folder')
+
+  // The toolbar install must be able to target the library it will create.
+  await app.click('从文件夹安装')
+  const select = elementsOf(app.render()).find((element) => element.type === 'select' && element.props?.className === 'dsk-input')
+  assert.ok(select, 'the install dialog picks a root')
+  const values = select.children.map((option) => option.props.value)
+  assert.ok(values.includes('user-dsh'), 'DSH roots stay available')
+  assert.ok(values.includes('agent:claude'), 'a not-yet-created agent library is an install target')
+})
+
+test('the three project libraries in one workspace stay distinguishable', async () => {
+  // `.dsh/skills`, `.agents/skills` and Claude Code's `.claude/skills` can all
+  // live in the same repository. Identical labels would make the filter tabs
+  // read as duplicates of one another.
+  const roots = [
+    { key: 'project-dsh:/repo', kind: 'project', source: 'project-dsh', agent: 'dsh', path: '/repo/.dsh/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
+    { key: 'project-agents:/repo', kind: 'project', source: 'project-agents', agent: 'dsh', path: '/repo/.agents/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
+    {
+      key: 'project-claude:/repo',
+      kind: 'project',
+      source: 'project-claude',
+      agent: 'claude',
+      path: '/repo/.claude/skills',
+      workspacePath: '/repo',
+      workspaceTitle: 'repo',
+      exists: true,
+      skills: [{ name: 'repo-skill', entryName: 'repo-skill', entryKind: 'directory', description: 'From the repo.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/repo/.claude/skills/repo-skill' }],
+      trash: [],
+    },
+  ]
+  const app = mountClient({ roots })
+  await app.settle()
+  const text = app.text()
+  assert.match(text, /repo · \.dsh\/skills/, 'the DSH project root names its folder')
+  assert.match(text, /repo · \.agents\/skills/)
+  assert.match(text, /repo · \.claude\/skills/, 'the Claude project root is named too')
+  assert.match(text, /repo-skill/, 'and its skill is listed')
+
+  const tree = app.render()
+  const claudeMarks = elementsOf(tree)
+    .filter((element) => element.type === 'svg')
+    .filter((svg) => (svg.props.children ?? []).some((child) => String(child.props?.d).startsWith('M4.709 15.955')))
+  assert.ok(claudeMarks.length >= 2, 'the Claude project root carries the Claude mark in tab and card')
+})
+
 test('removing an added directory asks the Host once', async () => {
   const added = {
     key: 'custom:0badc0de',

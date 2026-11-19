@@ -84,15 +84,62 @@ describe('agent libraries', () => {
     )
   })
 
-  test('a library that disappears stops being listed', async () => {
+  test('an agent library stays listed until the agent itself is gone', async () => {
     const before = await internals.discoverAgentLibraries()
     assert.equal(before.length, 4)
+    // Only the library directory is removed: the agent is still installed, so
+    // its home remains the evidence that this root deserves a row.
     await rm(join(process.env.CODEBUDDY_HOME, 'skills'), { recursive: true, force: true })
-    const after = await internals.discoverAgentLibraries()
-    assert.deepEqual(after.map((entry) => entry.agent), ['codex', 'claude', 'workbuddy'])
+    const libraryGone = await internals.discoverAgentLibraries()
+    assert.deepEqual(libraryGone.map((entry) => entry.agent), ['codex', 'claude', 'workbuddy', 'codebuddy'])
+    const listed = await dispatch(ctx, { action: 'list' })
+    const buddy = listed.roots.find((root) => root.key === 'agent:codebuddy')
+    assert.equal(buddy.exists, false, 'the row says the library is not there yet')
+    assert.deepEqual(buddy.skills, [])
+
+    // Uninstalling the agent removes the row again.
+    await rm(process.env.CODEBUDDY_HOME, { recursive: true, force: true })
+    const agentGone = await internals.discoverAgentLibraries()
+    assert.deepEqual(agentGone.map((entry) => entry.agent), ['codex', 'claude', 'workbuddy'])
+
     // Put it back for the tests that follow.
     await mkdir(join(process.env.CODEBUDDY_HOME, 'skills', 'buddy-skill'), { recursive: true })
     await writeFile(join(process.env.CODEBUDDY_HOME, 'skills', 'buddy-skill', 'SKILL.md'), SKILL.replace('%NAME%', 'buddy-skill'), 'utf8')
+  })
+
+  test('a Claude library that has never been created takes the first skill', async () => {
+    // Claude Code is installed and configured (~/.claude/settings.json) but has
+    // never kept a skill, so ~/.claude/skills does not exist. That is the state
+    // a person is in the moment they want to manage Claude's skills for the
+    // first time, and it must not be the one state the panel cannot address.
+    const original = process.env.CLAUDE_CONFIG_DIR
+    const fresh = join(base, 'claude-installed')
+    await mkdir(fresh, { recursive: true })
+    await writeFile(join(fresh, 'settings.json'), '{}\n', 'utf8')
+    process.env.CLAUDE_CONFIG_DIR = fresh
+    try {
+      const listed = await dispatch(ctx, { action: 'list' })
+      const claude = listed.roots.find((root) => root.key === 'agent:claude')
+      assert.ok(claude, 'Claude Code is listed as soon as the agent itself is installed')
+      assert.equal(claude.path, join(fresh, 'skills'))
+      assert.equal(claude.exists, false)
+      assert.deepEqual(claude.skills, [])
+
+      const installed = await dispatch(ctx, {
+        action: 'import-files',
+        rootKey: 'agent:claude',
+        name: 'claude-first',
+        files: [{ path: 'SKILL.md', content: SKILL.replace('%NAME%', 'claude-first') }],
+      })
+      assert.equal(installed.ok, true, 'installing is the way the library gets created')
+      assert.equal(installed.entryName, 'claude-first')
+
+      const again = (await dispatch(ctx, { action: 'list' })).roots.find((root) => root.key === 'agent:claude')
+      assert.equal(again.exists, true)
+      assert.deepEqual(again.skills.map((skill) => skill.name), ['claude-first'])
+    } finally {
+      process.env.CLAUDE_CONFIG_DIR = original
+    }
   })
 
   test('a skill in an agent library is switched in place, not copied', async () => {
@@ -132,5 +179,49 @@ describe('agent libraries', () => {
 
     const skill = await provider.get(listed.candidates.find((candidate) => candidate.name === 'codex-skill'))
     assert.match(skill.content, /# Body/)
+  })
+
+  test('a repository\'s own Claude skills are a project root, and the model can load them', async () => {
+    // Claude Code keeps per-repository skills in `<repo>/.claude/skills`. They
+    // are neither DSH's nor a separate agent library, and DSH does not scan the
+    // path, so this plugin has to: a switch that renames the bundle only means
+    // something if the catalog it feeds is the one this plugin serves.
+    const repo = join(base, 'repo-with-claude-skills')
+    await mkdir(join(repo, '.claude', 'skills', 'repo-skill'), { recursive: true })
+    await writeFile(join(repo, '.claude', 'skills', 'repo-skill', 'SKILL.md'), SKILL.replace('%NAME%', 'repo-skill'), 'utf8')
+    await mkdir(join(repo, '.dsh', 'skills'), { recursive: true })
+
+    const repoCtx = { get: (name) => (name === 'workspaceRegistry' ? { list: () => [{ path: repo, title: 'repo' }] } : undefined) }
+    const listed = await dispatch(repoCtx, { action: 'list' })
+    const claude = listed.roots.find((root) => root.key === `project-claude:${repo}`)
+    assert.ok(claude, 'the repository\'s Claude library is listed')
+    assert.equal(claude.kind, 'project')
+    assert.equal(claude.agent, 'claude')
+    assert.deepEqual(claude.skills.map((skill) => skill.name), ['repo-skill'])
+    // A workspace without that directory gains no root.
+    assert.equal(listed.roots.some((root) => root.key === 'project-claude:/nope'), false)
+
+    let factory
+    const providerCtx = {
+      get: (name) => {
+        if (name === 'skills') return { registerProvider: (create) => ((factory = create), () => {}) }
+        if (name === 'workspaceRegistry') return { list: () => [{ path: repo, title: 'repo' }] }
+        return undefined
+      },
+      effect: (fn) => (fn(), () => {}),
+      connection: { fetch: { register: () => () => {} } },
+    }
+    apply(providerCtx)
+    const provider = factory({ signal: new AbortController().signal, invalidate: () => {} })
+    const candidates = (await provider.list()).candidates
+    const found = candidates.find((candidate) => candidate.name === 'repo-skill')
+    assert.ok(found, 'the model catalog carries the repository Claude skill')
+    assert.match((await provider.get(found)).content, /# Body/)
+
+    // The switch works in place, and the entry leaves the catalog with it.
+    const off = await dispatch(repoCtx, { action: 'set-disabled', rootKey: `project-claude:${repo}`, entryName: 'repo-skill', disabled: true })
+    assert.equal(off.ok, true)
+    const after = (await provider.list()).candidates.map((candidate) => candidate.name)
+    assert.ok(!after.includes('repo-skill'), 'a disabled Claude skill is gone from the model catalog')
   })
 })

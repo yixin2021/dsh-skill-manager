@@ -30,7 +30,8 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **新建技能** | 用表单写一个带合法 frontmatter 的技能包。 |
 | **安全卸载** | 卸载只是把条目移进根目录下的 `.trash`，之后可恢复，也可彻底删除。 |
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
-| **自动识别** | Codex、Claude Code、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。 |
+| **自动识别** | Codex、Claude Code、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
+| **Claude Code 技能** | Claude Code 的用户技能库（`~/.claude/skills`）和每个仓库自己的 `.claude/skills` 都会被列出，可以启停、作为安装目标，并由 DSH 加载。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -134,7 +135,10 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 | CodeBuddy | CodeBuddy | `$CODEBUDDY_HOME/skills`（通常是 `~/.codebuddy/skills`） |
 
 每次读取时重新探测，而不是记住结果：以后装了别的 agent 会自动出现，删掉目录也就
-从列表里消失。这些技能库和手动添加的目录一样可以管理：把这个库交给模型的是本插件，
+从列表里消失。反过来说，技能目录还没创建、但 agent 本身已经装了（比如 Claude Code
+有 `~/.claude/settings.json` 却没有 `skills/`）时，这个库仍然会列出，显示「尚未创建」
+而不是隐藏——这恰恰是用户第一次想给这个 agent 装技能的时机，安装和导入都会在写入时
+顺手创建该目录。把 agent 自己的 home 删掉，这一行才会消失。这些技能库和手动添加的目录一样可以管理：把这个库交给模型的是本插件，
 所以这里的开关确实会改变下一步读到的目录。字节仍然属于那个 agent，
 卸载只是移进该库自己的 `.trash`，随时可以恢复。
 
@@ -143,6 +147,21 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 `openai.svg`、`claude.svg`）、以及 codebuddy.ai 和 workbuddy.cn 站点上的官方
 `logo.svg`。单色标用 `currentColor`，跟随主题；两个圆标保留各自的渐变。商标归各
 自所有，这里只用来标识技能来自哪个 agent。
+
+### Claude Code，两种作用域
+
+Claude Code 从两个位置读技能，这里两个都管：
+
+| 作用域 | 路径 | 根目录 key |
+|---|---|---|
+| 用户级 | `$CLAUDE_CONFIG_DIR/skills`（通常是 `~/.claude/skills`） | `agent:claude` |
+| 仓库级 | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+
+仓库级按打开的工作区列出，且只在目录存在时列出——从没放过 Claude 技能的仓库不会多出
+一行空目录。因为 DSH 不扫描 `.claude`，这些目录由本插件的 provider 交给模型，所以在这里
+停用技能是真的从模型目录里消失，而不只是面板里藏起来。同一个工作区可能同时有
+`.dsh/skills`、`.agents/skills` 和 `.claude/skills`，所以项目类根目录会带上文件夹名
+（`项目 · repo · .claude/skills`）以区分。
 
 ### 添加的目录
 
