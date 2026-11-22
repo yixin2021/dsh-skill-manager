@@ -1,7 +1,7 @@
 /**
- * Agent libraries: the skill directories Codex, CodeBuddy, Claude Code and Pi
- * keep are found on their own, so a person does not have to paste a path the
- * app could have discovered.
+ * Agent libraries: the skill directories Codex, CodeBuddy, Claude Code, Pi and
+ * GitHub Copilot keep are found on their own, so a person does not have to
+ * paste a path the app could have discovered.
  *
  * These tests run against a temporary home with the environment variables each
  * agent honours, so the result does not depend on what is installed on the
@@ -25,7 +25,7 @@ describe('agent libraries', () => {
   let base
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-agents-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-agents-'))
     process.env.DSH_HOME = join(base, 'home')
     process.env.DSH_AGENTS_HOME = join(base, 'agents')
     process.env.CODEX_HOME = join(base, 'codex')
@@ -34,12 +34,16 @@ describe('agent libraries', () => {
     // Pi's library is not directly inside its home: it is `<agent dir>/skills`,
     // and the agent dir itself is what PI_CODING_AGENT_DIR moves.
     process.env.PI_CODING_AGENT_DIR = join(base, 'pi', 'agent')
+    // Copilot's home is flat: `COPILOT_HOME` replaces `~/.copilot` itself, so
+    // its library is `<home>/skills` like Codex and Claude.
+    process.env.COPILOT_HOME = join(base, 'copilot')
     process.env.WORKBUDDY_HOME = join(base, 'workbuddy')
     for (const [kind, name] of [
       [process.env.CODEX_HOME, 'codex-skill'],
       [process.env.CODEBUDDY_HOME, 'buddy-skill'],
       [process.env.CLAUDE_CONFIG_DIR, 'claude-skill'],
       [process.env.PI_CODING_AGENT_DIR, 'pi-skill'],
+      [process.env.COPILOT_HOME, 'copilot-skill'],
       [process.env.WORKBUDDY_HOME, 'wb-skill'],
     ]) {
       await mkdir(join(kind, 'skills', name), { recursive: true })
@@ -54,6 +58,7 @@ describe('agent libraries', () => {
     delete process.env.CODEBUDDY_HOME
     delete process.env.CLAUDE_CONFIG_DIR
     delete process.env.PI_CODING_AGENT_DIR
+    delete process.env.COPILOT_HOME
     delete process.env.WORKBUDDY_HOME
     await rm(base, { recursive: true, force: true })
   })
@@ -61,12 +66,14 @@ describe('agent libraries', () => {
   test('finds each agent library that exists, and skips the ones that do not', async () => {
     const listed = await dispatch(ctx, { action: 'list' })
     const agents = listed.roots.filter((root) => root.kind === 'agent')
-    // Listed in the order the page shows them: codex, claude, pi, workbuddy, codebuddy.
-    assert.deepEqual(agents.map((root) => root.agent), ['codex', 'claude', 'pi', 'workbuddy', 'codebuddy'])
+    // Listed in the order the page shows them: codex, claude, pi, copilot,
+    // workbuddy, codebuddy.
+    assert.deepEqual(agents.map((root) => root.agent), ['codex', 'claude', 'pi', 'copilot', 'workbuddy', 'codebuddy'])
     assert.deepEqual(agents.map((root) => root.skills.map((skill) => skill.name)), [
       ['codex-skill'],
       ['claude-skill'],
       ['pi-skill'],
+      ['copilot-skill'],
       ['wb-skill'],
       ['buddy-skill'],
     ])
@@ -90,6 +97,7 @@ describe('agent libraries', () => {
         join(process.env.CLAUDE_CONFIG_DIR, 'skills'),
         // Pi keeps skills one level deeper than the other agents.
         join(process.env.PI_CODING_AGENT_DIR, 'skills'),
+        join(process.env.COPILOT_HOME, 'skills'),
         join(process.env.WORKBUDDY_HOME, 'skills'),
         join(process.env.CODEBUDDY_HOME, 'skills'),
       ],
@@ -98,12 +106,12 @@ describe('agent libraries', () => {
 
   test('an agent library stays listed until the agent itself is gone', async () => {
     const before = await internals.discoverAgentLibraries()
-    assert.equal(before.length, 5)
+    assert.equal(before.length, 6)
     // Only the library directory is removed: the agent is still installed, so
     // its home remains the evidence that this root deserves a row.
     await rm(join(process.env.CODEBUDDY_HOME, 'skills'), { recursive: true, force: true })
     const libraryGone = await internals.discoverAgentLibraries()
-    assert.deepEqual(libraryGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'workbuddy', 'codebuddy'])
+    assert.deepEqual(libraryGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'copilot', 'workbuddy', 'codebuddy'])
     const listed = await dispatch(ctx, { action: 'list' })
     const buddy = listed.roots.find((root) => root.key === 'agent:codebuddy')
     assert.equal(buddy.exists, false, 'the row says the library is not there yet')
@@ -112,7 +120,7 @@ describe('agent libraries', () => {
     // Uninstalling the agent removes the row again.
     await rm(process.env.CODEBUDDY_HOME, { recursive: true, force: true })
     const agentGone = await internals.discoverAgentLibraries()
-    assert.deepEqual(agentGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'workbuddy'])
+    assert.deepEqual(agentGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'copilot', 'workbuddy'])
 
     // Put it back for the tests that follow.
     await mkdir(join(process.env.CODEBUDDY_HOME, 'skills', 'buddy-skill'), { recursive: true })
@@ -186,7 +194,7 @@ describe('agent libraries', () => {
     apply(ctxWithSkills)
     const provider = factory({ signal: new AbortController().signal, invalidate: () => {} })
     const listed = await provider.list()
-    assert.deepEqual(listed.candidates.map((candidate) => candidate.name).sort(), ['buddy-skill', 'claude-skill', 'codex-skill', 'pi-skill', 'wb-skill'])
+    assert.deepEqual(listed.candidates.map((candidate) => candidate.name).sort(), ['buddy-skill', 'claude-skill', 'codex-skill', 'copilot-skill', 'pi-skill', 'wb-skill'])
     for (const candidate of listed.candidates) assert.equal(candidate.source, 'custom')
 
     const skill = await provider.get(listed.candidates.find((candidate) => candidate.name === 'codex-skill'))
@@ -270,6 +278,46 @@ describe('agent libraries', () => {
     } finally {
       process.env.PI_CODING_AGENT_DIR = original
     }
+  })
+
+  test('GitHub Copilot reads `<repo>/.github/skills`, which DSH does not scan', async () => {
+    // Copilot's documented repository location is `.github/skills`. Copilot also
+    // reads `.claude/skills` and `.agents/skills`, but those already have rows of
+    // their own, so only this one is added here.
+    const repo = join(base, 'repo-with-copilot-skills')
+    await mkdir(join(repo, '.github', 'skills', 'copilot-repo-skill'), { recursive: true })
+    await writeFile(join(repo, '.github', 'skills', 'copilot-repo-skill', 'SKILL.md'), SKILL.replace('%NAME%', 'copilot-repo-skill'), 'utf8')
+
+    const repoCtx = { get: (name) => (name === 'workspaceRegistry' ? { list: () => [{ path: repo, title: 'repo' }] } : undefined) }
+    const listed = await dispatch(repoCtx, { action: 'list' })
+    const copilot = listed.roots.find((root) => root.key === `project-copilot:${repo}`)
+    assert.ok(copilot, 'the repository\'s Copilot library is listed')
+    assert.equal(copilot.kind, 'project')
+    assert.equal(copilot.agent, 'copilot')
+    assert.equal(copilot.path, join(repo, '.github', 'skills'))
+    assert.deepEqual(copilot.skills.map((skill) => skill.name), ['copilot-repo-skill'])
+
+    let factory
+    const providerCtx = {
+      get: (name) => {
+        if (name === 'skills') return { registerProvider: (create) => ((factory = create), () => {}) }
+        if (name === 'workspaceRegistry') return { list: () => [{ path: repo, title: 'repo' }] }
+        return undefined
+      },
+      effect: (fn) => (fn(), () => {}),
+      connection: { fetch: { register: () => () => {} } },
+    }
+    apply(providerCtx)
+    const provider = factory({ signal: new AbortController().signal, invalidate: () => {} })
+    const found = (await provider.list()).candidates.find((candidate) => candidate.name === 'copilot-repo-skill')
+    assert.ok(found, 'the model catalog carries the repository Copilot skill')
+    assert.match((await provider.get(found)).content, /# Body/)
+
+    // The switch is a rename in place, and the catalog loses the entry with it.
+    const off = await dispatch(repoCtx, { action: 'set-disabled', rootKey: `project-copilot:${repo}`, entryName: 'copilot-repo-skill', disabled: true })
+    assert.equal(off.ok, true)
+    const after = (await provider.list()).candidates.map((candidate) => candidate.name)
+    assert.ok(!after.includes('copilot-repo-skill'), 'a disabled Copilot skill is gone from the model catalog')
   })
 
   test('a home-relative agent dir is expanded and a relative one is ignored', () => {

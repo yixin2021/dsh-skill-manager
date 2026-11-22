@@ -236,7 +236,7 @@ describe('the tree policy', () => {
 
 describe('the disk tree reader', () => {
   test('a byte-limit breach stops every directory, not just the current one', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'dsh-skills-tree-'))
+    const base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-tree-'))
     try {
       // Three sibling directories, each with one 1 KiB payload: a reader that
       // only aborts the current recursion would keep going after the first.
@@ -267,7 +267,7 @@ describe('installing from a repository', () => {
   let ctx
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-remote-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-remote-'))
     project = join(base, 'project')
     await mkdir(join(project, '.dsh', 'skills'), { recursive: true })
     process.env.DSH_HOME = base
@@ -590,7 +590,7 @@ describe('installing from a git host', () => {
   let ctx
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-git-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-git-'))
     project = join(base, 'project')
     await mkdir(join(project, '.dsh', 'skills'), { recursive: true })
     process.env.DSH_HOME = base
@@ -715,7 +715,7 @@ describe('installing from a git host', () => {
 
 describe('the tree a clone produces', () => {
   test('a directory on disk reads as a tree', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'dsh-skills-tree-'))
+    const base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-tree-'))
     try {
       await mkdir(join(base, 'skills', 'alpha', 'references'), { recursive: true })
       await writeFile(join(base, 'skills', 'alpha', 'SKILL.md'), ALPHA, 'utf8')

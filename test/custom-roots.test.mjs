@@ -33,7 +33,7 @@ describe('added directories', () => {
   let second
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-custom-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-custom-'))
     // An "other agent" library: not one of the roots DSH scans itself.
     library = join(base, 'other-agent', 'skills')
     await mkdir(join(library, 'alpha'), { recursive: true })
@@ -48,6 +48,7 @@ describe('added directories', () => {
     process.env.CLAUDE_CONFIG_DIR = join(base, 'no-claude')
     process.env.WORKBUDDY_HOME = join(base, 'no-workbuddy')
     process.env.PI_CODING_AGENT_DIR = join(base, 'no-pi', 'agent')
+    process.env.COPILOT_HOME = join(base, 'no-copilot')
     process.env.DSH_AGENTS_HOME = join(base, 'agents')
     await mkdir(join(process.env.DSH_HOME, 'skills'), { recursive: true })
   })
@@ -60,6 +61,7 @@ describe('added directories', () => {
     delete process.env.CLAUDE_CONFIG_DIR
     delete process.env.WORKBUDDY_HOME
     delete process.env.PI_CODING_AGENT_DIR
+    delete process.env.COPILOT_HOME
     await rm(base, { recursive: true, force: true })
   })
 
@@ -228,7 +230,7 @@ test('DSH itself can load skills from an added directory', async () => {
   assert.equal(typeof factory, 'function', 'apply registers a provider when DSH exposes the service')
 
   const provider = factory({ signal: new AbortController().signal, invalidate: () => invalidations.push(Date.now()) })
-  assert.equal(provider.name, 'dsh-skills-custom')
+  assert.equal(provider.name, 'dsh-skill-manager-custom')
 
   // The earlier tests left the second library listed; add the first back.
   const added = await dispatch(ctx, { action: 'add-root', path: library })
@@ -240,7 +242,7 @@ test('DSH itself can load skills from an added directory', async () => {
   assert.deepEqual(names, ['alpha', 'beta'])
   for (const candidate of listed.candidates) {
     assert.equal(candidate.source, 'custom')
-    assert.equal(candidate.provider, 'dsh-skills-custom')
+    assert.equal(candidate.provider, 'dsh-skill-manager-custom')
     assert.equal(candidate.invocation.modelInvocable, true)
   }
 

@@ -3,7 +3,7 @@ description: "DeepSeek Harness 技能管理插件：在左侧导航中提供「�
 kind: "plugin-readme"
 ---
 
-# dsh-skills
+# dsh-skill-manager
 
 [English](README.md) | 中文
 
@@ -11,8 +11,8 @@ kind: "plugin-readme"
 
 在 DeepSeek Harness 左侧导航中加入一行 **技能**，以及点击后打开的技能管理页面。
 
-[安装](#安装) · [下载 v0.1.1](https://github.com/yixin2021/dsh-skills/releases/latest) ·
-[介绍页](https://yixin2021.github.io/dsh-skills/)（`github.io` 在部分网络中不可达，见文末）
+[安装](#安装) · [下载 v0.2.0](https://github.com/yixin2021/dsh-skill-manager/releases/latest) ·
+[介绍页](https://yixin2021.github.io/dsh-skill-manager/)（`github.io` 在部分网络中不可达，见文末）
 
 DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中发现 Agent 技能，
 但本身没有提供查看已安装技能、或在不改文件的前提下临时关掉某个技能的界面。
@@ -30,8 +30,8 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **新建技能** | 用表单写一个带合法 frontmatter 的技能包。 |
 | **安全卸载** | 卸载只是把条目移进根目录下的 `.trash`，之后可恢复，也可彻底删除。 |
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
-| **自动识别** | Codex、Claude Code、Pi、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
-| **Claude Code 与 Pi 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`），以及每个仓库自己的 `.claude/skills` 和 `.pi/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
+| **自动识别** | Codex、Claude Code、Pi、GitHub Copilot、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
+| **Claude Code、Pi 与 Copilot 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`）、GitHub Copilot 的（`~/.copilot/skills`），以及每个仓库自己的 `.claude/skills`、`.pi/skills` 和 `.github/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -41,23 +41,23 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 （设置 → 插件）里安装：
 
 ```
-github:yixin2021/dsh-skills
+github:yixin2021/dsh-skill-manager
 ```
 
 同一条规格也适用于 CLI——`dsh plugin` 会把参数原样转给 profile 里的 pnpm：
 
 ```sh
-dsh plugin --profile desktop add github:yixin2021/dsh-skills
-dsh plugin --profile desktop remove dsh-skills
+dsh plugin --profile desktop add github:yixin2021/dsh-skill-manager
+dsh plugin --profile desktop remove dsh-skill-manager
 ```
 
-`https://github.com/yixin2021/dsh-skills` 与
-`git+ssh://git@github.com/yixin2021/dsh-skills.git` 等价。
+`https://github.com/yixin2021/dsh-skill-manager` 与
+`git+ssh://git@github.com/yixin2021/dsh-skill-manager.git` 等价。
 
 **从本地目录安装。**
 
 ```sh
-dsh plugin --profile desktop add /absolute/path/to/dsh-skills
+dsh plugin --profile desktop add /absolute/path/to/dsh-skill-manager
 ```
 
 bundle patch 会插入一个名为 `skills` 的 Loader 行；客户端部分负责挂载导航行和面板。
@@ -66,14 +66,14 @@ bundle patch 会插入一个名为 `skills` 的 Loader 行；客户端部分负�
 ## 实现方式
 
 **宿主侧**（`index.js`）在 `ctx.connection.fetch` 上注册一个需要鉴权的 JSON 路由
-`POST /api/dsh-skills`，处理 `list`、`read`、`set-disabled`、`trash`、`restore`、
+`POST /api/dsh-skill-manager`，处理 `list`、`read`、`set-disabled`、`trash`、`restore`、
 `purge`、`empty-trash`、`create`、`import-directory`、`import-files`、
 `install-from-remote`、`reveal`、`add-root`、`remove-root`；并通过
 `ctx.skills.registerProvider` 把自动识别的技能库和手动添加的目录交给模型。
 `lib/skills-core.js` 负责技能语法本身——frontmatter 解析、根目录发现、条目扫描——
 路由和测试因此共用同一套「什么算一个技能」的定义。
 
-**客户端侧**（`client.js`）在 `sidebar.panellist` 中用 id `dsh-skills` 注册一个图标，
+**客户端侧**（`client.js`）在 `sidebar.panellist` 中用 id `dsh-skill-manager` 注册一个图标，
 并在 `main` 中注册同一个 id 作为 key 的面板——布局正是靠这个 id 把导航行和面板对上。
 它自己从不读技能目录：所有事实都经由路由取得，浏览器没有任何文件系统权限。
 
@@ -132,6 +132,7 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 | Codex | Codex | `$CODEX_HOME/skills`（通常是 `~/.codex/skills`） |
 | Claude Code | Claude Code | `$CLAUDE_CONFIG_DIR/skills`（通常是 `~/.claude/skills`） |
 | Pi | Pi | `$PI_CODING_AGENT_DIR/skills`（通常是 `~/.pi/agent/skills`） |
+| GitHub Copilot | GitHub Copilot | `$COPILOT_HOME/skills`（通常是 `~/.copilot/skills`） |
 | WorkBuddy | WorkBuddy | `$WORKBUDDY_HOME/skills`（通常是 `~/.workbuddy/skills`） |
 | CodeBuddy | CodeBuddy | `$CODEBUDDY_HOME/skills`（通常是 `~/.codebuddy/skills`） |
 
@@ -149,13 +150,14 @@ Pi 是唯一一个技能库不在 home 正下方的 agent：它的 agent 目录�
 
 图标用的是各家公开的品牌素材，不是自己画的：DeepSeek 鲸鱼（simple-icons 的
 `deepseek.svg`）、OpenAI 绳结与 Claude 米字（`@lobehub/icons-static-svg` 的
-`openai.svg`、`claude.svg`）、Pi 的三块字形（pi.dev 的 `favicon.svg`）、以及
+`openai.svg`、`claude.svg`）、Pi 的三块字形（pi.dev 的 `favicon.svg`）、
+GitHub Copilot 的头盔（官方 Primer octicons 的 `copilot-24.svg`）、以及
 codebuddy.ai 和 workbuddy.cn 站点上的官方 `logo.svg`。单色标用 `currentColor`，
 跟随主题；两个圆标保留各自的渐变。商标归各自所有，这里只用来标识技能来自哪个 agent。
 
-### Claude Code 与 Pi，两种作用域
+### Claude Code、Pi 与 Copilot，两种作用域
 
-这两个 agent 都从两个位置读技能，四个目录这里全管：
+这几个 agent 都从两个位置读技能，六个目录这里全管：
 
 | agent | 作用域 | 路径 | 根目录 key |
 |---|---|---|---|
@@ -163,12 +165,17 @@ codebuddy.ai 和 workbuddy.cn 站点上的官方 `logo.svg`。单色标用 `curr
 | Claude Code | 仓库级 | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
 | Pi | 用户级 | `$PI_CODING_AGENT_DIR/skills`（通常是 `~/.pi/agent/skills`） | `agent:pi` |
 | Pi | 仓库级 | `<workspace>/.pi/skills` | `project-pi:<workspace path>` |
+| GitHub Copilot | 用户级 | `$COPILOT_HOME/skills`（通常是 `~/.copilot/skills`） | `agent:copilot` |
+| GitHub Copilot | 仓库级 | `<workspace>/.github/skills` | `project-copilot:<workspace path>` |
 
 仓库级按打开的工作区列出，且只在目录存在时列出——从没放过该 agent 技能的仓库不会多出
-一行空目录。因为 DSH 既不扫 `.claude` 也不扫 `.pi`，这些目录由本插件的 provider 交给模型，
-所以在这里停用技能是真的从模型目录里消失，而不只是面板里藏起来。同一个工作区可能同时有
-`.dsh/skills`、`.agents/skills`、`.claude/skills` 和 `.pi/skills`，所以项目类根目录会
-带上文件夹名（`repo · .pi/skills`）以区分。
+一行空目录。因为 DSH 既不扫 `.claude`、`.pi` 也不扫 `.github`，这些目录由本插件的
+provider 交给模型，所以在这里停用技能是真的从模型目录里消失，而不只是面板里藏起来。
+同一个工作区可能同时有 `.dsh/skills`、`.agents/skills`、`.claude/skills`、`.pi/skills`
+和 `.github/skills`，所以项目类根目录会带上文件夹名（`repo · .pi/skills`）以区分。
+
+Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`；这些目录已经
+各自有对应的行，所以 Copilot 只列 `.github/skills` 和 `~/.copilot/skills`，不重复。
 
 ### 添加的目录
 
@@ -226,7 +233,7 @@ frontmatter 解析（引号标量、注释、块标量、非法布尔写法）�
 
 ## 关于介绍页
 
-介绍页发布在 GitHub Pages（<https://yixin2021.github.io/dsh-skills/>）。`*.github.io`
+介绍页发布在 GitHub Pages（<https://yixin2021.github.io/dsh-skill-manager/>）。`*.github.io`
 在部分网络（含中国大陆多数网络）会被干扰：TCP 能连上，TLS 握手直接被重置，浏览器表现为
 「无法访问」。仓库本身、Releases、README 上的图片都不受影响。
 

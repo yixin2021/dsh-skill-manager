@@ -59,7 +59,7 @@ describe('route', () => {
   let mounted
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-route-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-route-'))
     project = join(base, 'project')
     await mkdir(join(project, '.dsh', 'skills', 'alpha'), { recursive: true })
     await writeFile(join(project, '.dsh', 'skills', 'alpha', 'SKILL.md'), SKILL, 'utf8')
@@ -70,6 +70,7 @@ describe('route', () => {
     process.env.CLAUDE_CONFIG_DIR = join(base, 'no-claude')
     process.env.WORKBUDDY_HOME = join(base, 'no-workbuddy')
     process.env.PI_CODING_AGENT_DIR = join(base, 'no-pi', 'agent')
+    process.env.COPILOT_HOME = join(base, 'no-copilot')
     const recorded = recordingContext()
     recorded.ctx.get = (name) =>
       name === 'workspaceRegistry' ? { list: () => [{ path: project, title: 'project' }] } : undefined
@@ -84,6 +85,7 @@ describe('route', () => {
     delete process.env.CLAUDE_CONFIG_DIR
     delete process.env.WORKBUDDY_HOME
     delete process.env.PI_CODING_AGENT_DIR
+    delete process.env.COPILOT_HOME
     await rm(base, { recursive: true, force: true })
   })
 
@@ -91,7 +93,7 @@ describe('route', () => {
     assert.equal(mounted.routes.length, 1)
     const [route] = mounted.routes
     assert.equal(route.path, ROUTE)
-    assert.equal(ROUTE, '/api/dsh-skills')
+    assert.equal(ROUTE, '/api/dsh-skill-manager')
     assert.deepEqual(route.methods, ['POST'])
     assert.equal(route.requestBody, 'buffered')
     assert.equal(typeof route.fetch, 'function')

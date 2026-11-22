@@ -20,20 +20,20 @@
  *     `useEffect` works on every React the shell may ship, and a render that
  *     throws here is caught and shown rather than leaving a blank column.
  *
- * @module dsh-skills/client
+ * @module dsh-skill-manager/client
  */
 
 window.__ModuleLoader__.load({
-  id: 'dsh-skills',
+  id: 'dsh-skill-manager',
   factory(require) {
     const React = require('react')
     const h = React.createElement
 
     /** Authenticated Host route, relative to the page origin. */
-    const ROUTE = 'api/dsh-skills'
+    const ROUTE = 'api/dsh-skill-manager'
 
     /** The one id that ties the navigation row to the panel it opens. */
-    const PANEL_ID = 'dsh-skills'
+    const PANEL_ID = 'dsh-skill-manager'
 
     /** How many rows are painted before search must narrow the list. */
     const RENDER_LIMIT = 80
@@ -82,6 +82,7 @@ window.__ModuleLoader__.load({
       'agent.codebuddy': 'CodeBuddy',
       'agent.claude': 'Claude Code',
       'agent.pi': 'Pi',
+      'agent.copilot': 'GitHub Copilot',
       'agent.workbuddy': 'WorkBuddy',
       'chip.auto': 'Auto',
       'action.addRoot': 'Add directory',
@@ -207,6 +208,7 @@ window.__ModuleLoader__.load({
       'agent.codebuddy': 'CodeBuddy',
       'agent.claude': 'Claude Code',
       'agent.pi': 'Pi',
+      'agent.copilot': 'GitHub Copilot',
       'agent.workbuddy': 'WorkBuddy',
       'chip.auto': '自动',
       'action.addRoot': '添加目录',
@@ -1093,9 +1095,10 @@ window.__ModuleLoader__.load({
        * The mark each agent actually uses, at 24×24 (or an official 40×40 tile).
        *
        * Brand marks, not shapes drawn here: the DeepSeek whale, the OpenAI knot
-       * for Codex, Claude's asterisk, Pi's three-shape glyph from pi.dev, and
-       * the official tiles from codebuddy.ai and workbuddy.cn. Sources are
-       * named in the README.
+       * for Codex, Claude's asterisk, Pi's three-shape glyph from pi.dev,
+       * GitHub Copilot's helmet from the official Primer octicons, and the
+       * official tiles from codebuddy.ai and workbuddy.cn. Sources are named in
+       * the README.
        * Monochrome marks inherit `currentColor`, so they follow the theme; the
        * two tiles keep their own gradient, as their vendors draw them.
        */
@@ -1107,6 +1110,11 @@ window.__ModuleLoader__.load({
         pi: { glyph: "M420 280H280V140H0V0H420V280ZM560 560H420V280H560V560ZM140 560H0V140H140V280H280V420H140V560Z", viewBox: '0 0 560 560', color: 'currentColor' },
         codex: { glyph: "M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z", viewBox: '0 0 24 24', color: 'currentColor' },
         claude: { glyph: "M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z", viewBox: '0 0 24 24', color: '#D97757' },
+        // GitHub Copilot's mark, from the official Primer octicon
+        // (`copilot-24.svg`, MIT, github.com/primer/octicons): the helmet and
+        // the two eyes as one path, so it renders through the same node as the
+        // monochrome marks above and follows the theme token.
+        copilot: { glyph: "M23.922 16.992c-.861 1.495-5.859 5.023-11.922 5.023-6.063 0-11.061-3.528-11.922-5.023A.641.641 0 0 1 0 16.736v-2.869a.841.841 0 0 1 .053-.22c.372-.935 1.347-2.292 2.605-2.656.167-.429.414-1.055.644-1.517a10.195 10.195 0 0 1-.052-1.086c0-1.331.282-2.499 1.132-3.368.397-.406.89-.717 1.474-.952 1.399-1.136 3.392-2.093 6.122-2.093 2.731 0 4.767.957 6.166 2.093.584.235 1.077.546 1.474.952.85.869 1.132 2.037 1.132 3.368 0 .368-.014.733-.052 1.086.23.462.477 1.088.644 1.517 1.258.364 2.233 1.721 2.605 2.656a.832.832 0 0 1 .053.22v2.869a.641.641 0 0 1-.078.256ZM12.172 11h-.344a4.323 4.323 0 0 1-.355.508C10.703 12.455 9.555 13 7.965 13c-1.725 0-2.989-.359-3.782-1.259a2.005 2.005 0 0 1-.085-.104L4 11.741v6.585c1.435.779 4.514 2.179 8 2.179 3.486 0 6.565-1.4 8-2.179v-6.585l-.098-.104s-.033.045-.085.104c-.793.9-2.057 1.259-3.782 1.259-1.59 0-2.738-.545-3.508-1.492a4.323 4.323 0 0 1-.355-.508h-.016.016Zm.641-2.935c.136 1.057.403 1.913.878 2.497.442.544 1.134.938 2.344.938 1.573 0 2.292-.337 2.657-.751.384-.435.558-1.15.558-2.361 0-1.14-.243-1.847-.705-2.319-.477-.488-1.319-.862-2.824-1.025-1.487-.161-2.192.138-2.533.529-.269.307-.437.808-.438 1.578v.021c0 .265.021.562.063.893Zm-1.626 0c.042-.331.063-.628.063-.894v-.02c-.001-.77-.169-1.271-.438-1.578-.341-.391-1.046-.69-2.533-.529-1.505.163-2.347.537-2.824 1.025-.462.472-.705 1.179-.705 2.319 0 1.211.175 1.926.558 2.361.365.414 1.084.751 2.657.751 1.21 0 1.902-.394 2.344-.938.475-.584.742-1.44.878-2.497ZM14.5 14.25a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Zm-5 0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Z", viewBox: '0 0 24 24', color: 'currentColor' },
         codebuddy: { svg: "<svg width=\"100%\" height=\"100%\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g clip-path=\"url(#cb-clip0_5110_14771)\"><rect width=\"40\" height=\"40\" rx=\"20\" fill=\"url(#cb-paint0_linear_5110_14771)\"/><path d=\"M27.6897 3.3426C28.057 3.01322 28.0795 2.99983 28.3485 2.98366C28.7851 2.95177 29.1858 3.16107 29.8664 3.78072C31.4566 5.22574 33.6703 8.19724 35.047 10.7343L35.5796 11.7191L36.3309 12.0927C37.0562 12.4593 38.2459 13.2111 38.7428 13.614C38.9673 13.7997 38.9992 13.8032 39.2326 13.7124C40.2872 13.3017 41.7982 13.846 43.1307 15.1244C44.3302 16.274 45.479 18.2384 45.9191 19.8778C45.9833 20.1417 46.0683 20.709 46.0994 21.1314C46.1997 22.6144 45.7243 23.7986 44.8085 24.3349C44.6213 24.443 44.6085 24.4725 44.6137 24.939C44.6559 27.1604 44.0571 29.3777 42.8543 31.54C41.4965 33.9678 39.0794 36.4798 35.8073 38.846C34.0502 40.1247 29.8918 42.5469 28.0122 43.3973C23.5096 45.4244 19.8999 46.2022 16.7645 45.8181C14.8943 45.5915 12.7771 44.8611 11.5246 44.0137C11.1951 43.786 11.1428 43.7719 10.8909 43.8439C9.55017 44.2289 7.79442 43.4374 6.30272 41.7817C5.70771 41.1197 4.74709 39.4939 4.43575 38.6241C3.71569 36.5887 3.85859 34.752 4.81783 33.6551C5.0657 33.3725 5.07387 33.3607 5.01972 32.8856C4.93033 32.1079 4.88982 30.9566 4.93066 30.2138L4.96343 29.5205L3.92091 27.6777C2.3078 24.8074 1.28326 22.3968 0.887982 20.5554C0.679402 19.546 0.692781 19.0981 0.949061 18.7667C1.10529 18.5666 1.61622 18.3594 2.23252 18.2455C3.78518 17.9729 7.17203 18.2198 10.9394 18.885L11.3303 18.9525L12.1903 18.1921C13.6179 16.9275 14.5665 16.2176 16.315 15.1274C18.1373 13.9872 20.1943 13.0498 22.5103 12.3071L23.2533 12.0687L23.6615 10.9964C25.1239 7.13587 26.6218 4.28969 27.6897 3.3426ZM15.4393 23.1261C13.7864 24.0804 12.9602 24.5582 12.3529 25.093C9.89364 27.2585 8.9738 30.6888 10.0208 33.7938C10.2794 34.5606 10.7568 35.387 11.7111 37.0398C12.6653 38.6926 13.1424 39.5194 13.6771 40.1267C15.8426 42.5859 19.2732 43.5045 22.3783 42.4574C23.145 42.1989 23.972 41.7223 25.6248 40.768L35.1333 35.2783C36.7862 34.324 37.6124 33.8462 38.2196 33.3114C40.6789 31.1459 41.5988 27.7156 40.5518 24.6105C40.2932 23.8438 39.8157 23.0174 38.8615 21.3646C37.9072 19.7117 37.4302 18.885 36.8955 18.2777C34.7299 15.8185 31.2993 14.8999 28.1943 15.947C27.4275 16.2055 26.6006 16.6821 24.9478 17.6364L15.4393 23.1261Z\" fill=\"url(#cb-paint1_linear_5110_14771)\"/><rect x=\"15.8816\" y=\"30.0273\" width=\"4.00904\" height=\"8.32646\" rx=\"2.00452\" transform=\"rotate(-30 15.8816 30.0273)\" fill=\"white\"/><rect x=\"26.6978\" y=\"23.7812\" width=\"4.00904\" height=\"8.32646\" rx=\"2.00452\" transform=\"rotate(-30 26.6978 23.7812)\" fill=\"white\"/></g><defs><filter id=\"cb-filter0_f_5110_14771\" x=\"-14.9163\" y=\"7.45599\" width=\"55.0468\" height=\"55.047\" filterUnits=\"userSpaceOnUse\" color-interpolation-filters=\"sRGB\"><feFlood flood-opacity=\"0\" result=\"BackgroundImageFix\"/><feBlend mode=\"normal\" in=\"SourceGraphic\" in2=\"BackgroundImageFix\" result=\"shape\"/><feGaussianBlur stdDeviation=\"6.72123\" result=\"effect1_foregroundBlur_5110_14771\"/></filter><filter id=\"cb-filter1_f_5110_14771\" x=\"9.46959\" y=\"19.7477\" width=\"47.7417\" height=\"47.741\" filterUnits=\"userSpaceOnUse\" color-interpolation-filters=\"sRGB\"><feFlood flood-opacity=\"0\" result=\"BackgroundImageFix\"/><feBlend mode=\"normal\" in=\"SourceGraphic\" in2=\"BackgroundImageFix\" result=\"shape\"/><feGaussianBlur stdDeviation=\"5.50019\" result=\"effect1_foregroundBlur_5110_14771\"/></filter><linearGradient id=\"cb-paint0_linear_5110_14771\" x1=\"20\" y1=\"0\" x2=\"20\" y2=\"40\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#6C4DFF\"/><stop offset=\"1\" stop-color=\"#583ED3\"/></linearGradient><linearGradient id=\"cb-paint1_linear_5110_14771\" x1=\"14.639\" y1=\"10.7917\" x2=\"32.1712\" y2=\"41.1585\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"white\" stop-opacity=\"0.8\"/><stop offset=\"0.437689\" stop-color=\"white\"/></linearGradient><clipPath id=\"cb-clip0_5110_14771\"><rect width=\"40\" height=\"40\" rx=\"20\" fill=\"white\"/></clipPath></defs></svg>" },
         workbuddy: { svg: "<svg width=\"100%\" height=\"100%\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g clip-path=\"url(#wb-clip0_542_3370)\"><rect width=\"40\" height=\"40\" rx=\"20\" fill=\"url(#wb-paint0_linear_542_3370)\"/><path d=\"M28.5931 3.12762C28.9853 2.77585 29.0091 2.76226 29.2968 2.74499C29.7628 2.71096 30.1894 2.93488 30.916 3.59634C32.6132 5.13875 34.9769 8.30904 36.4462 11.0168L37.0138 12.0682L37.8156 12.4668C38.5896 12.8579 39.8593 13.6593 40.3898 14.0895C40.6297 14.2878 40.6638 14.2925 40.9133 14.1954C42.0388 13.7572 43.6506 14.3382 45.0727 15.7024C46.3529 16.9294 47.5794 19.026 48.0491 20.7757C48.1177 21.0574 48.2087 21.6628 48.2419 22.1134C48.349 23.6964 47.8414 24.9608 46.8637 25.5331C46.664 25.6484 46.6505 25.6795 46.6561 26.1774C46.7011 28.5481 46.0621 30.9144 44.7785 33.2221C43.3293 35.8133 40.7489 38.4945 37.2566 41.0199C35.3813 42.3846 30.9445 44.9701 28.9382 45.8778C24.1324 48.0414 20.2794 48.8709 16.9329 48.4609C14.9368 48.219 12.6769 47.44 11.34 46.5355C10.9885 46.2925 10.9325 46.2774 10.6637 46.3543C9.2327 46.7651 7.35867 45.9207 5.76659 44.1535C5.13165 43.4471 4.1065 41.7127 3.77404 40.7843C3.0054 38.6118 3.15852 36.6506 4.18236 35.4799C4.44671 35.1785 4.45511 35.1658 4.39735 34.6589C4.30195 33.8289 4.25837 32.6008 4.30192 31.808L4.33666 31.0674L3.22502 29.101C1.5033 26.0375 0.409325 23.4645 -0.012563 21.4992C-0.235219 20.4218 -0.221193 19.9436 0.0522186 19.5899C0.21871 19.3763 0.764928 19.1545 1.42322 19.0329C3.08041 18.742 6.69466 19.0056 10.7155 19.7155L11.1329 19.788L12.0511 18.976C13.5747 17.6264 14.587 16.8696 16.4531 15.706C18.3981 14.4891 20.5929 13.4877 23.0648 12.695L23.8577 12.4414L24.2939 11.2964C25.8547 7.17615 27.4533 4.13844 28.5931 3.12762ZM15.5182 24.243C13.7542 25.2615 12.8718 25.7706 12.2236 26.3413C9.59893 28.6526 8.61811 32.3134 9.73545 35.6274C10.0114 36.4457 10.5201 37.3283 11.5386 39.0923C12.5571 40.8564 13.0671 41.7383 13.6378 42.3864C15.9491 45.0112 19.6103 45.9929 22.9243 44.8755C23.7426 44.5995 24.6249 44.0899 26.3888 43.0714L36.5375 37.2121C38.3016 36.1936 39.184 35.6845 39.8321 35.1137C42.4568 32.8024 43.4373 29.1409 42.3198 25.8269C42.0438 25.0086 41.5342 24.1264 40.5158 22.3624C39.4973 20.5983 38.9882 19.7159 38.4175 19.0678C36.1062 16.4432 32.4454 15.4622 29.1314 16.5796C28.3131 16.8556 27.431 17.3651 25.6669 18.3836L15.5182 24.243Z\" fill=\"url(#wb-paint1_linear_542_3370)\"/><rect x=\"16.4961\" y=\"31.3344\" width=\"4.00904\" height=\"8.32646\" rx=\"2.00452\" transform=\"rotate(-30 16.4961 31.3344)\" fill=\"white\"/><rect x=\"27.3125\" y=\"25.0894\" width=\"4.00904\" height=\"8.32646\" rx=\"2.00452\" transform=\"rotate(-30 27.3125 25.0894)\" fill=\"white\"/></g><defs><filter id=\"wb-filter0_f_542_3370\" x=\"7.47033\" y=\"19.7475\" width=\"47.742\" height=\"47.7416\" filterUnits=\"userSpaceOnUse\" color-interpolation-filters=\"sRGB\"><feFlood flood-opacity=\"0\" result=\"BackgroundImageFix\"/><feBlend mode=\"normal\" in=\"SourceGraphic\" in2=\"BackgroundImageFix\" result=\"shape\"/><feGaussianBlur stdDeviation=\"5.50019\" result=\"effect1_foregroundBlur_542_3370\"/></filter><linearGradient id=\"wb-paint0_linear_542_3370\" x1=\"20\" y1=\"0\" x2=\"20\" y2=\"40\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0EC8A9\"/><stop offset=\"1\" stop-color=\"#01C886\"/></linearGradient><linearGradient id=\"wb-paint1_linear_542_3370\" x1=\"14.6642\" y1=\"11.0783\" x2=\"33.3762\" y2=\"43.4885\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"white\" stop-opacity=\"0.8\"/><stop offset=\"0.437689\" stop-color=\"white\"/></linearGradient><clipPath id=\"wb-clip0_542_3370\"><rect width=\"40\" height=\"40\" rx=\"20\" fill=\"white\"/></clipPath></defs></svg>" },
       }
@@ -1150,6 +1158,7 @@ window.__ModuleLoader__.load({
         'project-agents': '.agents/skills',
         'project-claude': '.claude/skills',
         'project-pi': '.pi/skills',
+        'project-copilot': '.github/skills',
       }
 
       /** @returns the readable name of one root. */
@@ -1163,9 +1172,10 @@ window.__ModuleLoader__.load({
         }
         if (root.kind === 'project') {
           const name = root.workspaceTitle || String(root.workspacePath ?? '').split('/').filter(Boolean).pop() || root.path
-          // Three project libraries can live in one workspace (`.dsh`, `.agents`
-          // and Claude's `.claude`), so the folder is part of the label: without
-          // it the filter tabs would read as three identical entries.
+          // Several project libraries can live in one workspace (`.dsh`,
+          // `.agents`, Claude's `.claude`, Pi's `.pi` and Copilot's `.github`),
+          // so the folder is part of the label: without it the filter tabs
+          // would read as identical entries.
           const library = PROJECT_LIBRARY[root.source]
           return library === undefined ? fill(t('root.project'), { name }) : fill(t('root.projectLibrary'), { name, library })
         }

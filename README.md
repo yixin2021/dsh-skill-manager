@@ -3,7 +3,7 @@ description: "Skills manager for the DSH Web UI: a Skills panel in the left navi
 kind: "plugin-readme"
 ---
 
-# dsh-skills
+# dsh-skill-manager
 
 English | [中文](README.zh.md)
 
@@ -11,8 +11,8 @@ English | [中文](README.zh.md)
 
 A **技能 / Skills** row in the DeepSeek Harness left navigation, and the page it opens.
 
-[Install](#install) · [Download v0.1.1](https://github.com/yixin2021/dsh-skills/releases/latest) ·
-[Landing page](https://yixin2021.github.io/dsh-skills/) (`github.io` is unreachable on some networks — see below)
+[Install](#install) · [Download v0.2.0](https://github.com/yixin2021/dsh-skill-manager/releases/latest) ·
+[Landing page](https://yixin2021.github.io/dsh-skill-manager/) (`github.io` is unreachable on some networks — see below)
 
 DSH discovers Agent Skills from `.dsh/skills` and `.agents/skills` — under your
 home and under a project — but ships no surface for seeing what is installed or
@@ -30,8 +30,8 @@ for turning one off without editing files. This plugin adds that surface.
 | **New skill** | Write a bundle with a valid frontmatter block from a form. |
 | **Uninstall safely** | Uninstall moves the entry to a root-local `.trash`; restore it later, or delete it for good. |
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
-| **Known libraries** | Codex, Claude Code, Pi, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
-| **Claude Code and Pi skills** | Claude Code's user library (`~/.claude/skills`) and Pi's (`~/.pi/agent/skills`), plus each repository's own `.claude/skills` and `.pi/skills`, are listed, switched, installed into and loaded by DSH. |
+| **Known libraries** | Codex, Claude Code, Pi, GitHub Copilot, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
+| **Claude Code, Pi and Copilot skills** | Claude Code's user library (`~/.claude/skills`), Pi's (`~/.pi/agent/skills`) and GitHub Copilot's (`~/.copilot/skills`), plus each repository's own `.claude/skills`, `.pi/skills` and `.github/skills`, are listed, switched, installed into and loaded by DSH. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -41,24 +41,24 @@ sits at the root and there is no build step, so any npm-compatible git spec
 resolves. In the plugin manager (Settings → Plugins), install:
 
 ```
-github:yixin2021/dsh-skills
+github:yixin2021/dsh-skill-manager
 ```
 
 The same spec works from the CLI — `dsh plugin` forwards its arguments to pnpm
 inside the profile:
 
 ```sh
-dsh plugin --profile desktop add github:yixin2021/dsh-skills
-dsh plugin --profile desktop remove dsh-skills
+dsh plugin --profile desktop add github:yixin2021/dsh-skill-manager
+dsh plugin --profile desktop remove dsh-skill-manager
 ```
 
-`https://github.com/yixin2021/dsh-skills` and
-`git+ssh://git@github.com/yixin2021/dsh-skills.git` are equivalent.
+`https://github.com/yixin2021/dsh-skill-manager` and
+`git+ssh://git@github.com/yixin2021/dsh-skill-manager.git` are equivalent.
 
 **From a local checkout.**
 
 ```sh
-dsh plugin --profile desktop add /absolute/path/to/dsh-skills
+dsh plugin --profile desktop add /absolute/path/to/dsh-skill-manager
 ```
 
 The bundle patch inserts one Loader row named `skills`; the client half mounts
@@ -67,7 +67,7 @@ the navigation row and the panel. Reload the window after installing.
 ## How it works
 
 **Host half** (`index.js`) registers one authenticated JSON route,
-`POST /api/dsh-skills`, on `ctx.connection.fetch`. It answers `list`, `read`,
+`POST /api/dsh-skill-manager`, on `ctx.connection.fetch`. It answers `list`, `read`,
 `set-disabled`, `trash`, `restore`, `purge`, `empty-trash`, `create`,
 `import-directory`, `import-files`, `install-from-remote`, `reveal`, `add-root`
 and `remove-root`. `ctx.skills.registerProvider` publishes the
@@ -76,7 +76,7 @@ skill grammar — frontmatter parsing, root discovery, entry scanning — so the
 route and the tests agree on what a skill is.
 
 **Client half** (`client.js`) registers a `sidebar.panellist` icon under the id
-`dsh-skills` and the `main` panel keyed by that same id, which is how the layout
+`dsh-skill-manager` and the `main` panel keyed by that same id, which is how the layout
 addresses a panel. It never reads a skill root itself: every fact arrives
 through the route, so the browser has no filesystem authority.
 
@@ -141,7 +141,7 @@ backs `.trash`.
 
 ### Known agent libraries
 
-Five libraries are found on their own, so a machine that already runs another
+Six libraries are found on their own, so a machine that already runs another
 coding agent needs no configuration. This is the order the page lists them in:
 
 | Mark | Library | Path |
@@ -151,6 +151,7 @@ coding agent needs no configuration. This is the order the page lists them in:
 | Codex | Codex | `$CODEX_HOME/skills` (usually `~/.codex/skills`) |
 | Claude Code | Claude Code | `$CLAUDE_CONFIG_DIR/skills` (usually `~/.claude/skills`) |
 | Pi | Pi | `$PI_CODING_AGENT_DIR/skills` (usually `~/.pi/agent/skills`) |
+| GitHub Copilot | GitHub Copilot | `$COPILOT_HOME/skills` (usually `~/.copilot/skills`) |
 | WorkBuddy | WorkBuddy | `$WORKBUDDY_HOME/skills` (usually `~/.workbuddy/skills`) |
 | CodeBuddy | CodeBuddy | `$CODEBUDDY_HOME/skills` (usually `~/.codebuddy/skills`) |
 
@@ -178,14 +179,15 @@ The marks are the vendors' own, taken from published brand assets rather than
 drawn here: the DeepSeek whale (`deepseek.svg` from simple-icons), the OpenAI
 knot and the Claude asterisk (`openai.svg`, `claude.svg` from
 `@lobehub/icons-static-svg`), Pi's three-shape glyph (`favicon.svg` from
-pi.dev), and the official `logo.svg` tiles served by codebuddy.ai and
+pi.dev), GitHub Copilot's helmet (`copilot-24.svg` from the official Primer
+octicons), and the official `logo.svg` tiles served by codebuddy.ai and
 workbuddy.cn. The monochrome ones inherit `currentColor` so they follow the
 theme; the two tiles keep their own gradients. Brand marks belong to their
 owners and identify the directory the skills came from.
 
-### Claude Code and Pi, in both scopes
+### Claude Code, Pi and Copilot, in both scopes
 
-Both agents read skills from two places, and all four directories are managed
+These agents read skills from two places, and all six directories are managed
 here:
 
 | Agent | Scope | Path | Root key |
@@ -194,14 +196,21 @@ here:
 | Claude Code | Repository | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
 | Pi | User | `$PI_CODING_AGENT_DIR/skills` (usually `~/.pi/agent/skills`) | `agent:pi` |
 | Pi | Repository | `<workspace>/.pi/skills` | `project-pi:<workspace path>` |
+| GitHub Copilot | User | `$COPILOT_HOME/skills` (usually `~/.copilot/skills`) | `agent:copilot` |
+| GitHub Copilot | Repository | `<workspace>/.github/skills` | `project-copilot:<workspace path>` |
 
 The repository scope is listed per open workspace, and only when the directory
 exists — a repository that has never carried that agent's skills gains no empty
-row. Because DSH scans neither `.claude` nor `.pi`, the plugin serves these
-directories through its own provider, so disabling a skill there really removes
-it from the model catalog rather than merely hiding it in the panel. Project rows
-name the folder they come from (`repo · .pi/skills`), since one workspace can
-hold `.dsh/skills`, `.agents/skills`, `.claude/skills` and `.pi/skills` at once.
+row. Because DSH scans none of `.claude`, `.pi` or `.github`, the plugin serves
+these directories through its own provider, so disabling a skill there really
+removes it from the model catalog rather than merely hiding it in the panel.
+Project rows name the folder they come from (`repo · .pi/skills`), since one
+workspace can hold `.dsh/skills`, `.agents/skills`, `.claude/skills`,
+`.pi/skills` and `.github/skills` at once.
+
+Copilot also reads `.claude/skills`, `.agents/skills` and `~/.agents/skills`.
+Those directories are already listed under their own rows, so Copilot's rows
+stay at `.github/skills` and `~/.copilot/skills` rather than duplicating them.
 
 ### Added directories
 

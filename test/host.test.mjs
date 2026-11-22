@@ -127,7 +127,7 @@ describe('roots and scanning', () => {
   let project
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-'))
     project = join(base, 'project')
     await mkdir(join(project, '.dsh', 'skills', 'alpha'), { recursive: true })
     await writeFile(join(project, '.dsh', 'skills', 'alpha', 'SKILL.md'), SKILL, 'utf8')
@@ -170,7 +170,7 @@ describe('mutations', () => {
   let ctx
 
   before(async () => {
-    base = await mkdtemp(join(tmpdir(), 'dsh-skills-mut-'))
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-mut-'))
     project = join(base, 'project')
     await mkdir(join(project, '.dsh', 'skills', 'alpha'), { recursive: true })
     await writeFile(join(project, '.dsh', 'skills', 'alpha', 'SKILL.md'), SKILL, 'utf8')

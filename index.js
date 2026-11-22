@@ -12,7 +12,7 @@
  * itself. No request field is ever concatenated into a path without passing
  * `resolveWithin`, so a page cannot address a file outside the roots.
  *
- * @module dsh-skills
+ * @module dsh-skill-manager
  */
 
 import { execFile } from 'node:child_process'
@@ -43,7 +43,7 @@ import {
 } from './lib/skills-core.js'
 
 /** The authenticated Fetch route the Client half posts to. */
-export const ROUTE = '/api/dsh-skills'
+export const ROUTE = '/api/dsh-skill-manager'
 
 /** Connection owns the transport this plugin answers on. */
 export const inject = ['connection']
@@ -760,11 +760,11 @@ function agentHomeFrom(variable, fallback) {
 /**
  * The skill directories the other coding agents on this machine keep.
  *
- * These are well-known locations, not guesses: Codex, CodeBuddy, Claude Code
- * and Pi each use one, and each honours an environment variable to move it.
- * Discovery happens on every read, so installing one of those agents later
- * needs no configuration here, and deleting the agent's home removes it from
- * the list.
+ * These are well-known locations, not guesses: Codex, CodeBuddy, Claude Code,
+ * Pi and GitHub Copilot each use one, and each honours an environment variable
+ * to move it. Discovery happens on every read, so installing one of those
+ * agents later needs no configuration here, and deleting the agent's home
+ * removes it from the list.
  *
  * Each candidate carries the agent's own home as well as the `skills/`
  * directory inside it: an agent that is installed but has never been given a
@@ -778,6 +778,11 @@ function agentHomeFrom(variable, fallback) {
  * moves that whole agent directory, which is what its own docs call the
  * config dir.
  *
+ * GitHub Copilot is flat like Codex and Claude: personal skills live in
+ * `~/.copilot/skills`, and `COPILOT_HOME` moves that directory. Copilot also
+ * reads `~/.agents/skills`, which is already the `user-agents` root, so only
+ * its own home is listed here.
+ *
  * @returns candidate `{ agent, home, path }` triples, whether or not they exist.
  */
 function agentLibraryCandidates() {
@@ -786,6 +791,7 @@ function agentLibraryCandidates() {
     codex: agentHomeFrom('CODEX_HOME', join(home, '.codex')),
     claude: agentHomeFrom('CLAUDE_CONFIG_DIR', join(home, '.claude')),
     pi: agentHomeFrom('PI_CODING_AGENT_DIR', join(home, '.pi', 'agent')),
+    copilot: agentHomeFrom('COPILOT_HOME', join(home, '.copilot')),
     workbuddy: agentHomeFrom('WORKBUDDY_HOME', join(home, '.workbuddy')),
     codebuddy: agentHomeFrom('CODEBUDDY_HOME', join(home, '.codebuddy')),
   }
@@ -827,11 +833,11 @@ async function discoverAgentLibraries() {
  * The per-repository skill directories the open workspaces carry for another
  * agent.
  *
- * Claude Code reads `<repo>/.claude/skills` and Pi reads `<repo>/.pi/skills`.
- * DSH scans neither, so a skill living there would be listed by this panel and
- * invisible to the model — the one combination the switch cannot be honest
- * about. Serving these directories here is what makes the switch on those rows
- * real.
+ * Claude Code reads `<repo>/.claude/skills`, Pi reads `<repo>/.pi/skills`, and
+ * GitHub Copilot reads `<repo>/.github/skills`. DSH scans none of them, so a
+ * skill living there would be listed by this panel and invisible to the model
+ * — the one combination the switch cannot be honest about. Serving these
+ * directories here is what makes the switch on those rows real.
  *
  * Only directories that exist are returned: a workspace that has never carried
  * a skill for that agent must not gain an empty root in the catalog.
@@ -843,6 +849,7 @@ async function workspaceAgentRoots(ctx) {
   const libraries = [
     { agent: 'claude', segments: ['.claude', 'skills'] },
     { agent: 'pi', segments: ['.pi', 'skills'] },
+    { agent: 'copilot', segments: ['.github', 'skills'] },
   ]
   const found = []
   for (const workspace of workspaceList(ctx)) {
@@ -959,7 +966,7 @@ let skillsControl
  */
 function createCustomProvider(ctx, control) {
   skillsControl = control
-  const providerName = 'dsh-skills-custom'
+  const providerName = 'dsh-skill-manager-custom'
   return {
     name: providerName,
     async list() {
@@ -1145,12 +1152,12 @@ async function answerRequest(ctx, request) {
 export function apply(ctx) {
   const skills = typeof ctx.get === 'function' ? ctx.get('skills') : undefined
   if (skills !== undefined && typeof skills.registerProvider === 'function') {
-    ctx.effect(() => skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skills: provider')
+    ctx.effect(() => skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skill-manager: provider')
   } else if (typeof ctx.inject === 'function') {
     // The catalog service may mount after this plugin. Waiting for it keeps the
     // added directories usable instead of silently browsing-only.
     ctx.inject(['skills'], (scoped) => {
-      scoped.effect(() => scoped.skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skills: provider')
+      scoped.effect(() => scoped.skills.registerProvider((control) => createCustomProvider(ctx, control)), 'dsh-skill-manager: provider')
     })
   }
   ctx.effect(
@@ -1177,7 +1184,7 @@ export function apply(ctx) {
           }
         },
       }),
-    'dsh-skills: route',
+    'dsh-skill-manager: route',
   )
 }
 

@@ -7,7 +7,7 @@
  * not provide fails here exactly as it would in the page, instead of being
  * quietly implemented by the test.
  *
- * @module dsh-skills/test/client
+ * @module dsh-skill-manager/test/client
  */
 
 import assert from 'node:assert/strict'
@@ -188,8 +188,8 @@ test('a language switch repaints through the Host change event', () => {
 
 test('both halves of the panel are registered under one id', () => {
   const client = loadClient()
-  assert.equal(client.sidebar.declaration.id, 'dsh-skills')
-  assert.equal(client.panel.declaration.key, 'dsh-skills')
+  assert.equal(client.sidebar.declaration.id, 'dsh-skill-manager')
+  assert.equal(client.panel.declaration.key, 'dsh-skill-manager')
 })
 
 test('the panel renders a stylesheet and never imports a Harness package', () => {
@@ -547,7 +547,7 @@ test('the reload button reports a read even when the result is unchanged', async
 
   let tree = await app.settle()
   assert.equal(app.calls.length, 1, 'the panel reads the roots on mount')
-  assert.equal(app.calls[0].url, 'http://127.0.0.1:1/api/dsh-skills')
+  assert.equal(app.calls[0].url, 'http://127.0.0.1:1/api/dsh-skill-manager')
   assert.equal(app.calls[0].init.method, 'POST')
   assert.deepEqual(JSON.parse(app.calls[0].init.body), { action: 'list' })
 
@@ -741,10 +741,11 @@ test('a library the agent has not created yet is listed and offered as an instal
   assert.ok(values.includes('agent:claude'), 'a not-yet-created agent library is an install target')
 })
 
-test('the four project libraries in one workspace stay distinguishable', async () => {
-  // `.dsh/skills`, `.agents/skills`, Claude Code's `.claude/skills` and Pi's
-  // `.pi/skills` can all live in the same repository. Identical labels would
-  // make the filter tabs read as duplicates of one another.
+test('the five project libraries in one workspace stay distinguishable', async () => {
+  // `.dsh/skills`, `.agents/skills`, Claude Code's `.claude/skills`, Pi's
+  // `.pi/skills` and GitHub Copilot's `.github/skills` can all live in the same
+  // repository. Identical labels would make the filter tabs read as duplicates
+  // of one another.
   const roots = [
     { key: 'project-dsh:/repo', kind: 'project', source: 'project-dsh', agent: 'dsh', path: '/repo/.dsh/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
     { key: 'project-agents:/repo', kind: 'project', source: 'project-agents', agent: 'dsh', path: '/repo/.agents/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
@@ -772,6 +773,18 @@ test('the four project libraries in one workspace stay distinguishable', async (
       skills: [{ name: 'pi-repo-skill', entryName: 'pi-repo-skill', entryKind: 'directory', description: 'From the pi side.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/repo/.pi/skills/pi-repo-skill' }],
       trash: [],
     },
+    {
+      key: 'project-copilot:/repo',
+      kind: 'project',
+      source: 'project-copilot',
+      agent: 'copilot',
+      path: '/repo/.github/skills',
+      workspacePath: '/repo',
+      workspaceTitle: 'repo',
+      exists: true,
+      skills: [{ name: 'copilot-repo-skill', entryName: 'copilot-repo-skill', entryKind: 'directory', description: 'From the Copilot side.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/repo/.github/skills/copilot-repo-skill' }],
+      trash: [],
+    },
   ]
   const app = mountClient({ roots })
   await app.settle()
@@ -780,8 +793,10 @@ test('the four project libraries in one workspace stay distinguishable', async (
   assert.match(text, /repo · \.agents\/skills/)
   assert.match(text, /repo · \.claude\/skills/, 'the Claude project root is named too')
   assert.match(text, /repo · \.pi\/skills/, 'and the Pi one')
+  assert.match(text, /repo · \.github\/skills/, 'and the GitHub Copilot one')
   assert.match(text, /repo-skill/, 'and its skill is listed')
   assert.match(text, /pi-repo-skill/, 'the Pi skill is listed as well')
+  assert.match(text, /copilot-repo-skill/, 'the Copilot skill too')
 
   const tree = app.render()
   const marks = (prefix) =>
@@ -793,6 +808,11 @@ test('the four project libraries in one workspace stay distinguishable', async (
   const piMarks = marks('M420 280H280V140H0V0H420V280Z')
   assert.ok(piMarks.length >= 2, 'the Pi project root carries Pi\'s mark in tab and card')
   assert.equal(piMarks[0].props.viewBox, '0 0 560 560', 'drawn on the vendor\'s own grid')
+  // Copilot's mark is the official Primer octicon, so its path is recognisable
+  // too; it is drawn on the 24 grid the octicon uses.
+  const copilotMarks = marks('M23.922 16.992')
+  assert.ok(copilotMarks.length >= 2, 'the Copilot project root carries the Copilot mark in tab and card')
+  assert.equal(copilotMarks[0].props.viewBox, '0 0 24 24', 'drawn on the octicon grid')
 })
 
 test('removing an added directory asks the Host once', async () => {
@@ -821,6 +841,7 @@ test('an agent library is named after its agent and carries that agent\'s own ma
   const roots = [
     { key: 'agent:codex', kind: 'agent', source: 'custom', agent: 'codex', path: '/home/u/.codex/skills', exists: true, skills: [], trash: [] },
     { key: 'agent:claude', kind: 'agent', source: 'custom', agent: 'claude', path: '/home/u/.claude/skills', exists: true, skills: [], trash: [] },
+    { key: 'agent:copilot', kind: 'agent', source: 'custom', agent: 'copilot', path: '/home/u/.copilot/skills', exists: true, skills: [], trash: [] },
     { key: 'agent:workbuddy', kind: 'agent', source: 'custom', agent: 'workbuddy', path: '/home/u/.workbuddy/skills', exists: true, skills: [], trash: [] },
     { key: 'custom:0badc0de', kind: 'custom', source: 'custom', agent: 'custom', path: '/home/u/mine', exists: true, skills: [], trash: [] },
   ]
@@ -829,6 +850,7 @@ test('an agent library is named after its agent and carries that agent\'s own ma
   const text = app.text()
   assert.match(text, /Codex/, 'the card is named after the agent')
   assert.match(text, /Claude Code/)
+  assert.match(text, /GitHub Copilot/)
   assert.match(text, /WorkBuddy/)
   assert.match(text, /自动/, 'and says it was found rather than added')
 
@@ -849,6 +871,8 @@ test('an agent library is named after its agent and carries that agent\'s own ma
   const claudeSpark = svgs.filter((svg) => (svg.props.children ?? []).some((child) => child.props?.fill === 'currentColor' && String(child.props.d).startsWith('M4.709 15.955')))
   assert.ok(claudeSpark.length >= 2, 'the Claude asterisk')
   assert.equal(claudeSpark[0].props.style.color, '#D97757', 'in Anthropic orange')
+  const copilotHelmet = svgs.filter((svg) => (svg.props.children ?? []).some((child) => typeof child.props?.d === 'string' && child.props.d.startsWith('M23.922 16.992')))
+  assert.ok(copilotHelmet.length >= 2, 'GitHub Copilot\'s own octicon, tab and card')
 
   // The WorkBuddy tile is the official SVG document, not a generated shape.
   assert.ok(tiles.some((tile) => tile.props.dangerouslySetInnerHTML.__html.includes('workbuddy') || tile.props.dangerouslySetInnerHTML.__html.includes('<svg')))
