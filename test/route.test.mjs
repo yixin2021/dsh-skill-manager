@@ -69,6 +69,7 @@ describe('route', () => {
     process.env.CODEBUDDY_HOME = join(base, 'no-codebuddy')
     process.env.CLAUDE_CONFIG_DIR = join(base, 'no-claude')
     process.env.WORKBUDDY_HOME = join(base, 'no-workbuddy')
+    process.env.PI_CODING_AGENT_DIR = join(base, 'no-pi', 'agent')
     const recorded = recordingContext()
     recorded.ctx.get = (name) =>
       name === 'workspaceRegistry' ? { list: () => [{ path: project, title: 'project' }] } : undefined
@@ -82,6 +83,7 @@ describe('route', () => {
     delete process.env.CODEBUDDY_HOME
     delete process.env.CLAUDE_CONFIG_DIR
     delete process.env.WORKBUDDY_HOME
+    delete process.env.PI_CODING_AGENT_DIR
     await rm(base, { recursive: true, force: true })
   })
 
