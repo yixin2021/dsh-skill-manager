@@ -1,7 +1,7 @@
 /**
- * Agent libraries: the skill directories Codex, CodeBuddy and Claude Code keep
- * are found on their own, so a person does not have to paste a path the app
- * could have discovered.
+ * Agent libraries: the skill directories Codex, CodeBuddy, Claude Code and Pi
+ * keep are found on their own, so a person does not have to paste a path the
+ * app could have discovered.
  *
  * These tests run against a temporary home with the environment variables each
  * agent honours, so the result does not depend on what is installed on the
@@ -10,7 +10,7 @@
 
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 
@@ -31,11 +31,15 @@ describe('agent libraries', () => {
     process.env.CODEX_HOME = join(base, 'codex')
     process.env.CODEBUDDY_HOME = join(base, 'codebuddy')
     process.env.CLAUDE_CONFIG_DIR = join(base, 'claude')
+    // Pi's library is not directly inside its home: it is `<agent dir>/skills`,
+    // and the agent dir itself is what PI_CODING_AGENT_DIR moves.
+    process.env.PI_CODING_AGENT_DIR = join(base, 'pi', 'agent')
     process.env.WORKBUDDY_HOME = join(base, 'workbuddy')
     for (const [kind, name] of [
       [process.env.CODEX_HOME, 'codex-skill'],
       [process.env.CODEBUDDY_HOME, 'buddy-skill'],
       [process.env.CLAUDE_CONFIG_DIR, 'claude-skill'],
+      [process.env.PI_CODING_AGENT_DIR, 'pi-skill'],
       [process.env.WORKBUDDY_HOME, 'wb-skill'],
     ]) {
       await mkdir(join(kind, 'skills', name), { recursive: true })
@@ -49,7 +53,7 @@ describe('agent libraries', () => {
     delete process.env.CODEX_HOME
     delete process.env.CODEBUDDY_HOME
     delete process.env.CLAUDE_CONFIG_DIR
-    delete process.env.WORKBUDDY_HOME
+    delete process.env.PI_CODING_AGENT_DIR
     delete process.env.WORKBUDDY_HOME
     await rm(base, { recursive: true, force: true })
   })
@@ -57,9 +61,15 @@ describe('agent libraries', () => {
   test('finds each agent library that exists, and skips the ones that do not', async () => {
     const listed = await dispatch(ctx, { action: 'list' })
     const agents = listed.roots.filter((root) => root.kind === 'agent')
-    // Listed in the order the page shows them: codex, claude, workbuddy, codebuddy.
-    assert.deepEqual(agents.map((root) => root.agent), ['codex', 'claude', 'workbuddy', 'codebuddy'])
-    assert.deepEqual(agents.map((root) => root.skills.map((skill) => skill.name)), [['codex-skill'], ['claude-skill'], ['wb-skill'], ['buddy-skill']])
+    // Listed in the order the page shows them: codex, claude, pi, workbuddy, codebuddy.
+    assert.deepEqual(agents.map((root) => root.agent), ['codex', 'claude', 'pi', 'workbuddy', 'codebuddy'])
+    assert.deepEqual(agents.map((root) => root.skills.map((skill) => skill.name)), [
+      ['codex-skill'],
+      ['claude-skill'],
+      ['pi-skill'],
+      ['wb-skill'],
+      ['buddy-skill'],
+    ])
     for (const root of agents) {
       assert.equal(root.readOnly, undefined, 'a discovered library is managed like any other root')
       assert.equal(root.exists, true)
@@ -78,6 +88,8 @@ describe('agent libraries', () => {
       [
         join(process.env.CODEX_HOME, 'skills'),
         join(process.env.CLAUDE_CONFIG_DIR, 'skills'),
+        // Pi keeps skills one level deeper than the other agents.
+        join(process.env.PI_CODING_AGENT_DIR, 'skills'),
         join(process.env.WORKBUDDY_HOME, 'skills'),
         join(process.env.CODEBUDDY_HOME, 'skills'),
       ],
@@ -86,12 +98,12 @@ describe('agent libraries', () => {
 
   test('an agent library stays listed until the agent itself is gone', async () => {
     const before = await internals.discoverAgentLibraries()
-    assert.equal(before.length, 4)
+    assert.equal(before.length, 5)
     // Only the library directory is removed: the agent is still installed, so
     // its home remains the evidence that this root deserves a row.
     await rm(join(process.env.CODEBUDDY_HOME, 'skills'), { recursive: true, force: true })
     const libraryGone = await internals.discoverAgentLibraries()
-    assert.deepEqual(libraryGone.map((entry) => entry.agent), ['codex', 'claude', 'workbuddy', 'codebuddy'])
+    assert.deepEqual(libraryGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'workbuddy', 'codebuddy'])
     const listed = await dispatch(ctx, { action: 'list' })
     const buddy = listed.roots.find((root) => root.key === 'agent:codebuddy')
     assert.equal(buddy.exists, false, 'the row says the library is not there yet')
@@ -100,7 +112,7 @@ describe('agent libraries', () => {
     // Uninstalling the agent removes the row again.
     await rm(process.env.CODEBUDDY_HOME, { recursive: true, force: true })
     const agentGone = await internals.discoverAgentLibraries()
-    assert.deepEqual(agentGone.map((entry) => entry.agent), ['codex', 'claude', 'workbuddy'])
+    assert.deepEqual(agentGone.map((entry) => entry.agent), ['codex', 'claude', 'pi', 'workbuddy'])
 
     // Put it back for the tests that follow.
     await mkdir(join(process.env.CODEBUDDY_HOME, 'skills', 'buddy-skill'), { recursive: true })
@@ -174,7 +186,7 @@ describe('agent libraries', () => {
     apply(ctxWithSkills)
     const provider = factory({ signal: new AbortController().signal, invalidate: () => {} })
     const listed = await provider.list()
-    assert.deepEqual(listed.candidates.map((candidate) => candidate.name).sort(), ['buddy-skill', 'claude-skill', 'codex-skill', 'wb-skill'])
+    assert.deepEqual(listed.candidates.map((candidate) => candidate.name).sort(), ['buddy-skill', 'claude-skill', 'codex-skill', 'pi-skill', 'wb-skill'])
     for (const candidate of listed.candidates) assert.equal(candidate.source, 'custom')
 
     const skill = await provider.get(listed.candidates.find((candidate) => candidate.name === 'codex-skill'))
@@ -223,5 +235,105 @@ describe('agent libraries', () => {
     assert.equal(off.ok, true)
     const after = (await provider.list()).candidates.map((candidate) => candidate.name)
     assert.ok(!after.includes('repo-skill'), 'a disabled Claude skill is gone from the model catalog')
+  })
+  test('Pi keeps its library one level deeper than the other agents', async () => {
+    // Pi's config dir is `~/.pi/agent`, not `~/.pi`: the parent also holds the
+    // package cache and the shared session store, so treating `~/.pi` as the
+    // agent home would list a library for a machine that has only ever used a
+    // pi package manager and never the agent.
+    const original = process.env.PI_CODING_AGENT_DIR
+    const home = join(base, 'pi-only-cache')
+    await mkdir(join(home, '.pi', 'packages'), { recursive: true })
+    process.env.PI_CODING_AGENT_DIR = join(home, '.pi', 'agent')
+    try {
+      const listed = await dispatch(ctx, { action: 'list' })
+      assert.equal(
+        listed.roots.some((root) => root.key === 'agent:pi'),
+        false,
+        'a `~/.pi` without `agent/` is not evidence that pi is installed',
+      )
+
+      // Once the agent has written its own config dir, the row appears and the
+      // skills directory is created by the first install, not by hand.
+      await mkdir(join(home, '.pi', 'agent'), { recursive: true })
+      const installed = await dispatch(ctx, {
+        action: 'import-files',
+        rootKey: 'agent:pi',
+        name: 'pi-first',
+        files: [{ path: 'SKILL.md', content: SKILL.replace('%NAME%', 'pi-first') }],
+      })
+      assert.equal(installed.ok, true)
+      assert.equal(installed.entryName, 'pi-first')
+      const pi = (await dispatch(ctx, { action: 'list' })).roots.find((root) => root.key === 'agent:pi')
+      assert.equal(pi.path, join(home, '.pi', 'agent', 'skills'))
+      assert.deepEqual(pi.skills.map((skill) => skill.name), ['pi-first'])
+    } finally {
+      process.env.PI_CODING_AGENT_DIR = original
+    }
+  })
+
+  test('a home-relative agent dir is expanded and a relative one is ignored', () => {
+    const original = process.env.PI_CODING_AGENT_DIR
+    try {
+      process.env.PI_CODING_AGENT_DIR = '~/custom-pi/agent'
+      const expanded = internals.agentLibraryCandidates().find((entry) => entry.agent === 'pi')
+      assert.equal(expanded.home, join(homedir(), 'custom-pi', 'agent'))
+      assert.equal(expanded.path, join(homedir(), 'custom-pi', 'agent', 'skills'))
+
+      // A relative value would resolve against pi's cwd, which this process
+      // does not share; the default is the honest fallback.
+      process.env.PI_CODING_AGENT_DIR = 'relative/agent'
+      const fallback = internals.agentLibraryCandidates().find((entry) => entry.agent === 'pi')
+      assert.equal(fallback.home, join(homedir(), '.pi', 'agent'))
+    } finally {
+      if (original === undefined) delete process.env.PI_CODING_AGENT_DIR
+      else process.env.PI_CODING_AGENT_DIR = original
+    }
+  })
+
+  test('a repository can carry a Pi library and a Claude library side by side', async () => {
+    // Pi reads `<repo>/.pi/skills`; Claude reads `<repo>/.claude/skills`. Both
+    // are per-repository, neither is scanned by DSH, and a repo may have both.
+    const repo = join(base, 'repo-both-agents')
+    for (const [dir, name] of [
+      ['.pi', 'pi-repo-skill'],
+      ['.claude', 'claude-repo-skill'],
+    ]) {
+      await mkdir(join(repo, dir, 'skills', name), { recursive: true })
+      await writeFile(join(repo, dir, 'skills', name, 'SKILL.md'), SKILL.replace('%NAME%', name), 'utf8')
+    }
+
+    const repoCtx = { get: (name) => (name === 'workspaceRegistry' ? { list: () => [{ path: repo, title: 'repo' }] } : undefined) }
+    const listed = await dispatch(repoCtx, { action: 'list' })
+    const pi = listed.roots.find((root) => root.key === `project-pi:${repo}`)
+    assert.ok(pi, 'the repository\'s Pi library is a project root')
+    assert.equal(pi.kind, 'project')
+    assert.equal(pi.path, join(repo, '.pi', 'skills'))
+    assert.deepEqual(pi.skills.map((skill) => skill.name), ['pi-repo-skill'])
+    assert.ok(listed.roots.some((root) => root.key === `project-claude:${repo}`), 'and so is Claude\'s')
+
+    let factory
+    const providerCtx = {
+      get: (name) => {
+        if (name === 'skills') return { registerProvider: (create) => ((factory = create), () => {}) }
+        if (name === 'workspaceRegistry') return { list: () => [{ path: repo, title: 'repo' }] }
+        return undefined
+      },
+      effect: (fn) => (fn(), () => {}),
+      connection: { fetch: { register: () => () => {} } },
+    }
+    apply(providerCtx)
+    const provider = factory({ signal: new AbortController().signal, invalidate: () => {} })
+    const names = (await provider.list()).candidates.map((candidate) => candidate.name)
+    assert.ok(names.includes('pi-repo-skill'), 'the model catalog carries the repository Pi skill')
+    assert.ok(names.includes('claude-repo-skill'), 'and the repository Claude skill')
+
+    // Disabling is a rename inside the repo-scoped Pi library, and the model
+    // catalog loses it on the next read.
+    const off = await dispatch(repoCtx, { action: 'set-disabled', rootKey: `project-pi:${repo}`, entryName: 'pi-repo-skill', disabled: true })
+    assert.equal(off.ok, true)
+    const after = (await provider.list()).candidates.map((candidate) => candidate.name)
+    assert.ok(!after.includes('pi-repo-skill'), 'a disabled Pi skill is gone from the model catalog')
+    assert.ok(after.includes('claude-repo-skill'), 'and the Claude one is untouched')
   })
 })

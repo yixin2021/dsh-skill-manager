@@ -741,10 +741,27 @@ function revealPath(path) {
 
 
 /**
+ * One agent home: the environment variable that moves it, or its default.
+ *
+ * A relative or unparseable value is ignored rather than guessed at: the
+ * agent would resolve it against its own working directory, which this process
+ * does not share, so the default is the honest answer.
+ *
+ * @param variable - the environment variable the agent honours.
+ * @param fallback - the directory to use when it is unset.
+ * @returns an absolute path.
+ */
+function agentHomeFrom(variable, fallback) {
+  const value = process.env[variable]
+  if (typeof value !== 'string' || value.trim().length === 0) return fallback
+  return expandHome(value) ?? fallback
+}
+
+/**
  * The skill directories the other coding agents on this machine keep.
  *
- * These are well-known locations, not guesses: Codex, CodeBuddy and Claude
- * Code each use one, and each honours an environment variable to move it.
+ * These are well-known locations, not guesses: Codex, CodeBuddy, Claude Code
+ * and Pi each use one, and each honours an environment variable to move it.
  * Discovery happens on every read, so installing one of those agents later
  * needs no configuration here, and deleting the agent's home removes it from
  * the list.
@@ -755,15 +772,22 @@ function revealPath(path) {
  * manageable — otherwise the switch, the install target and the copy action
  * for that agent would all be missing exactly when they are needed first.
  *
+ * Pi is the one agent whose library does not sit directly in its home: it
+ * keeps skills under `~/.pi/agent/skills`, because `~/.pi` also holds the
+ * package manager's cache and the shared session store. `PI_CODING_AGENT_DIR`
+ * moves that whole agent directory, which is what its own docs call the
+ * config dir.
+ *
  * @returns candidate `{ agent, home, path }` triples, whether or not they exist.
  */
 function agentLibraryCandidates() {
   const home = homedir()
   const homes = {
-    codex: process.env.CODEX_HOME || join(home, '.codex'),
-    claude: process.env.CLAUDE_CONFIG_DIR || join(home, '.claude'),
-    workbuddy: process.env.WORKBUDDY_HOME || join(home, '.workbuddy'),
-    codebuddy: process.env.CODEBUDDY_HOME || join(home, '.codebuddy'),
+    codex: agentHomeFrom('CODEX_HOME', join(home, '.codex')),
+    claude: agentHomeFrom('CLAUDE_CONFIG_DIR', join(home, '.claude')),
+    pi: agentHomeFrom('PI_CODING_AGENT_DIR', join(home, '.pi', 'agent')),
+    workbuddy: agentHomeFrom('WORKBUDDY_HOME', join(home, '.workbuddy')),
+    codebuddy: agentHomeFrom('CODEBUDDY_HOME', join(home, '.codebuddy')),
   }
   return Object.entries(homes).map(([agent, agentHome]) => ({ agent, home: agentHome, path: join(agentHome, 'skills') }))
 }
@@ -800,42 +824,50 @@ async function discoverAgentLibraries() {
 }
 
 /**
- * The Claude Code skill directories the open workspaces carry.
+ * The per-repository skill directories the open workspaces carry for another
+ * agent.
  *
- * Claude Code reads a repository's own skills from `<repo>/.claude/skills`, and
- * DSH does not scan that path, so a skill living there would be listed by this
- * panel and invisible to the model — the one combination the switch cannot be
- * honest about. Serving it here is what makes the switch on those rows real.
+ * Claude Code reads `<repo>/.claude/skills` and Pi reads `<repo>/.pi/skills`.
+ * DSH scans neither, so a skill living there would be listed by this panel and
+ * invisible to the model — the one combination the switch cannot be honest
+ * about. Serving these directories here is what makes the switch on those rows
+ * real.
  *
- * Only directories that exist are returned: a workspace without Claude skills
- * must not gain an empty root in the catalog.
+ * Only directories that exist are returned: a workspace that has never carried
+ * a skill for that agent must not gain an empty root in the catalog.
  *
  * @param ctx - Host context.
- * @returns `{ agent, path }` pairs, one per workspace that has the directory.
+ * @returns `{ agent, path }` pairs, one per workspace and agent that has the directory.
  */
-async function workspaceClaudeRoots(ctx) {
+async function workspaceAgentRoots(ctx) {
+  const libraries = [
+    { agent: 'claude', segments: ['.claude', 'skills'] },
+    { agent: 'pi', segments: ['.pi', 'skills'] },
+  ]
   const found = []
   for (const workspace of workspaceList(ctx)) {
-    const path = join(workspace.path, '.claude', 'skills')
-    const info = await stat(path).catch(() => undefined)
-    if (info === undefined || !info.isDirectory()) continue
-    found.push({ agent: 'claude', path })
+    for (const library of libraries) {
+      const path = join(workspace.path, ...library.segments)
+      const info = await stat(path).catch(() => undefined)
+      if (info === undefined || !info.isDirectory()) continue
+      found.push({ agent: library.agent, path })
+    }
   }
   return found
 }
 
 /**
  * Every root beyond the four DSH scans itself: the discovered agent libraries,
- * the Claude libraries the open workspaces carry, and the directories a person
- * added. All are managed like the roots above, because this plugin is the
- * provider that hands them to the model.
+ * the per-repository libraries the open workspaces carry, and the directories
+ * a person added. All are managed like the roots above, because this plugin is
+ * the provider that hands them to the model.
  *
  * @param ctx - Host context.
  * @returns `{ agent, path }` pairs.
  */
 async function extraRoots(ctx) {
   const manual = (await readCustomRoots()).map((path) => ({ agent: 'custom', path }))
-  return [...(await discoverAgentLibraries()), ...(await workspaceClaudeRoots(ctx)), ...manual]
+  return [...(await discoverAgentLibraries()), ...(await workspaceAgentRoots(ctx)), ...manual]
 }
 
 /**
@@ -1161,8 +1193,9 @@ export const internals = {
   writeCustomRoots,
   customRootsFile,
   createCustomProvider,
+  agentHomeFrom,
   agentLibraryCandidates,
   discoverAgentLibraries,
-  workspaceClaudeRoots,
+  workspaceAgentRoots,
   extraRoots,
 }

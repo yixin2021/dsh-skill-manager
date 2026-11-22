@@ -741,10 +741,10 @@ test('a library the agent has not created yet is listed and offered as an instal
   assert.ok(values.includes('agent:claude'), 'a not-yet-created agent library is an install target')
 })
 
-test('the three project libraries in one workspace stay distinguishable', async () => {
-  // `.dsh/skills`, `.agents/skills` and Claude Code's `.claude/skills` can all
-  // live in the same repository. Identical labels would make the filter tabs
-  // read as duplicates of one another.
+test('the four project libraries in one workspace stay distinguishable', async () => {
+  // `.dsh/skills`, `.agents/skills`, Claude Code's `.claude/skills` and Pi's
+  // `.pi/skills` can all live in the same repository. Identical labels would
+  // make the filter tabs read as duplicates of one another.
   const roots = [
     { key: 'project-dsh:/repo', kind: 'project', source: 'project-dsh', agent: 'dsh', path: '/repo/.dsh/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
     { key: 'project-agents:/repo', kind: 'project', source: 'project-agents', agent: 'dsh', path: '/repo/.agents/skills', workspacePath: '/repo', workspaceTitle: 'repo', exists: true, skills: [], trash: [] },
@@ -760,6 +760,18 @@ test('the three project libraries in one workspace stay distinguishable', async 
       skills: [{ name: 'repo-skill', entryName: 'repo-skill', entryKind: 'directory', description: 'From the repo.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/repo/.claude/skills/repo-skill' }],
       trash: [],
     },
+    {
+      key: 'project-pi:/repo',
+      kind: 'project',
+      source: 'project-pi',
+      agent: 'pi',
+      path: '/repo/.pi/skills',
+      workspacePath: '/repo',
+      workspaceTitle: 'repo',
+      exists: true,
+      skills: [{ name: 'pi-repo-skill', entryName: 'pi-repo-skill', entryKind: 'directory', description: 'From the pi side.', disabled: false, modelInvocable: true, userInvocable: true, issues: [], path: '/repo/.pi/skills/pi-repo-skill' }],
+      trash: [],
+    },
   ]
   const app = mountClient({ roots })
   await app.settle()
@@ -767,13 +779,20 @@ test('the three project libraries in one workspace stay distinguishable', async 
   assert.match(text, /repo · \.dsh\/skills/, 'the DSH project root names its folder')
   assert.match(text, /repo · \.agents\/skills/)
   assert.match(text, /repo · \.claude\/skills/, 'the Claude project root is named too')
+  assert.match(text, /repo · \.pi\/skills/, 'and the Pi one')
   assert.match(text, /repo-skill/, 'and its skill is listed')
+  assert.match(text, /pi-repo-skill/, 'the Pi skill is listed as well')
 
   const tree = app.render()
-  const claudeMarks = elementsOf(tree)
-    .filter((element) => element.type === 'svg')
-    .filter((svg) => (svg.props.children ?? []).some((child) => String(child.props?.d).startsWith('M4.709 15.955')))
-  assert.ok(claudeMarks.length >= 2, 'the Claude project root carries the Claude mark in tab and card')
+  const marks = (prefix) =>
+    elementsOf(tree)
+      .filter((element) => element.type === 'svg')
+      .filter((svg) => (svg.props.children ?? []).some((child) => String(child.props?.d).startsWith(prefix)))
+  assert.ok(marks('M4.709 15.955').length >= 2, 'the Claude project root carries the Claude mark in tab and card')
+  // Pi's mark is its own three-shape glyph on a 560 grid, not a substitute.
+  const piMarks = marks('M420 280H280V140H0V0H420V280Z')
+  assert.ok(piMarks.length >= 2, 'the Pi project root carries Pi\'s mark in tab and card')
+  assert.equal(piMarks[0].props.viewBox, '0 0 560 560', 'drawn on the vendor\'s own grid')
 })
 
 test('removing an added directory asks the Host once', async () => {

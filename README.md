@@ -30,8 +30,8 @@ for turning one off without editing files. This plugin adds that surface.
 | **New skill** | Write a bundle with a valid frontmatter block from a form. |
 | **Uninstall safely** | Uninstall moves the entry to a root-local `.trash`; restore it later, or delete it for good. |
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
-| **Known libraries** | Codex, Claude Code, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
-| **Claude Code skills** | Claude Code's user library (`~/.claude/skills`) and each repository's own `.claude/skills` are listed, switched, installed into and loaded by DSH. |
+| **Known libraries** | Codex, Claude Code, Pi, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
+| **Claude Code and Pi skills** | Claude Code's user library (`~/.claude/skills`) and Pi's (`~/.pi/agent/skills`), plus each repository's own `.claude/skills` and `.pi/skills`, are listed, switched, installed into and loaded by DSH. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -150,6 +150,7 @@ coding agent needs no configuration. This is the order the page lists them in:
 | DeepSeek | Agents | `$DSH_AGENTS_HOME/skills` (usually `~/.agents/skills`) |
 | Codex | Codex | `$CODEX_HOME/skills` (usually `~/.codex/skills`) |
 | Claude Code | Claude Code | `$CLAUDE_CONFIG_DIR/skills` (usually `~/.claude/skills`) |
+| Pi | Pi | `$PI_CODING_AGENT_DIR/skills` (usually `~/.pi/agent/skills`) |
 | WorkBuddy | WorkBuddy | `$WORKBUDDY_HOME/skills` (usually `~/.workbuddy/skills`) |
 | CodeBuddy | CodeBuddy | `$CODEBUDDY_HOME/skills` (usually `~/.codebuddy/skills`) |
 
@@ -167,30 +168,40 @@ hands them to the model, so the switch changes the catalog the next step reads.
 The bytes still belong to that agent, and uninstalling only moves them into that
 library's own `.trash`, where they can be restored.
 
+Pi is the one agent whose library is not directly inside its home: the agent
+directory is `~/.pi/agent` (moved by `PI_CODING_AGENT_DIR`), because `~/.pi`
+also holds the package cache and the shared session store. A `~/.pi` without an
+`agent/` subdirectory is therefore not evidence that Pi is installed, and the
+row does not appear.
+
 The marks are the vendors' own, taken from published brand assets rather than
 drawn here: the DeepSeek whale (`deepseek.svg` from simple-icons), the OpenAI
 knot and the Claude asterisk (`openai.svg`, `claude.svg` from
-`@lobehub/icons-static-svg`), and the official `logo.svg` tiles served by
-codebuddy.ai and workbuddy.cn. The monochrome ones inherit `currentColor` so
-they follow the theme; the two tiles keep their own gradients. Brand marks
-belong to their owners and identify the directory the skills came from.
+`@lobehub/icons-static-svg`), Pi's three-shape glyph (`favicon.svg` from
+pi.dev), and the official `logo.svg` tiles served by codebuddy.ai and
+workbuddy.cn. The monochrome ones inherit `currentColor` so they follow the
+theme; the two tiles keep their own gradients. Brand marks belong to their
+owners and identify the directory the skills came from.
 
-### Claude Code, in both scopes
+### Claude Code and Pi, in both scopes
 
-Claude Code reads skills from two places, and both are managed here:
+Both agents read skills from two places, and all four directories are managed
+here:
 
-| Scope | Path | Root key |
-|---|---|---|
-| User | `$CLAUDE_CONFIG_DIR/skills` (usually `~/.claude/skills`) | `agent:claude` |
-| Repository | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+| Agent | Scope | Path | Root key |
+|---|---|---|---|
+| Claude Code | User | `$CLAUDE_CONFIG_DIR/skills` (usually `~/.claude/skills`) | `agent:claude` |
+| Claude Code | Repository | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+| Pi | User | `$PI_CODING_AGENT_DIR/skills` (usually `~/.pi/agent/skills`) | `agent:pi` |
+| Pi | Repository | `<workspace>/.pi/skills` | `project-pi:<workspace path>` |
 
 The repository scope is listed per open workspace, and only when the directory
-exists — a repository that has never carried Claude skills gains no empty row.
-Because DSH does not scan `.claude`, the plugin serves these directories through
-its own provider, so disabling a skill there really removes it from the model
-catalog rather than merely hiding it in the panel. Project rows name the folder
-they come from (`Project · repo · .claude/skills`), since one workspace can hold
-`.dsh/skills`, `.agents/skills` and `.claude/skills` at once.
+exists — a repository that has never carried that agent's skills gains no empty
+row. Because DSH scans neither `.claude` nor `.pi`, the plugin serves these
+directories through its own provider, so disabling a skill there really removes
+it from the model catalog rather than merely hiding it in the panel. Project rows
+name the folder they come from (`repo · .pi/skills`), since one workspace can
+hold `.dsh/skills`, `.agents/skills`, `.claude/skills` and `.pi/skills` at once.
 
 ### Added directories
 

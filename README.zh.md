@@ -30,8 +30,8 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **新建技能** | 用表单写一个带合法 frontmatter 的技能包。 |
 | **安全卸载** | 卸载只是把条目移进根目录下的 `.trash`，之后可恢复，也可彻底删除。 |
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
-| **自动识别** | Codex、Claude Code、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
-| **Claude Code 技能** | Claude Code 的用户技能库（`~/.claude/skills`）和每个仓库自己的 `.claude/skills` 都会被列出，可以启停、作为安装目标，并由 DSH 加载。 |
+| **自动识别** | Codex、Claude Code、Pi、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
+| **Claude Code 与 Pi 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`），以及每个仓库自己的 `.claude/skills` 和 `.pi/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -122,7 +122,7 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 
 ### 自动识别的 agent 技能库
 
-有五个目录是自动找到的，已经在用别的编码 agent 的机器不需要任何配置。页面按这个
+有这些目录是自动找到的，已经在用别的编码 agent 的机器不需要任何配置。页面按这个
 顺序列出：
 
 | 图标 | 技能库 | 路径 |
@@ -131,6 +131,7 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 | DeepSeek | Agents | `$DSH_AGENTS_HOME/skills`（通常是 `~/.agents/skills`） |
 | Codex | Codex | `$CODEX_HOME/skills`（通常是 `~/.codex/skills`） |
 | Claude Code | Claude Code | `$CLAUDE_CONFIG_DIR/skills`（通常是 `~/.claude/skills`） |
+| Pi | Pi | `$PI_CODING_AGENT_DIR/skills`（通常是 `~/.pi/agent/skills`） |
 | WorkBuddy | WorkBuddy | `$WORKBUDDY_HOME/skills`（通常是 `~/.workbuddy/skills`） |
 | CodeBuddy | CodeBuddy | `$CODEBUDDY_HOME/skills`（通常是 `~/.codebuddy/skills`） |
 
@@ -142,26 +143,32 @@ DSH 只发现技能根的**直接子项**。被停用的技能会被移到 `<roo
 所以这里的开关确实会改变下一步读到的目录。字节仍然属于那个 agent，
 卸载只是移进该库自己的 `.trash`，随时可以恢复。
 
+Pi 是唯一一个技能库不在 home 正下方的 agent：它的 agent 目录是 `~/.pi/agent`
+（由 `PI_CODING_AGENT_DIR` 移动），因为 `~/.pi` 里还放着包管理器的缓存和共享的会话
+目录。所以只有 `~/.pi`、没有 `agent/` 子目录时，不认为 Pi 已安装，也不会多出一行。
+
 图标用的是各家公开的品牌素材，不是自己画的：DeepSeek 鲸鱼（simple-icons 的
 `deepseek.svg`）、OpenAI 绳结与 Claude 米字（`@lobehub/icons-static-svg` 的
-`openai.svg`、`claude.svg`）、以及 codebuddy.ai 和 workbuddy.cn 站点上的官方
-`logo.svg`。单色标用 `currentColor`，跟随主题；两个圆标保留各自的渐变。商标归各
-自所有，这里只用来标识技能来自哪个 agent。
+`openai.svg`、`claude.svg`）、Pi 的三块字形（pi.dev 的 `favicon.svg`）、以及
+codebuddy.ai 和 workbuddy.cn 站点上的官方 `logo.svg`。单色标用 `currentColor`，
+跟随主题；两个圆标保留各自的渐变。商标归各自所有，这里只用来标识技能来自哪个 agent。
 
-### Claude Code，两种作用域
+### Claude Code 与 Pi，两种作用域
 
-Claude Code 从两个位置读技能，这里两个都管：
+这两个 agent 都从两个位置读技能，四个目录这里全管：
 
-| 作用域 | 路径 | 根目录 key |
-|---|---|---|
-| 用户级 | `$CLAUDE_CONFIG_DIR/skills`（通常是 `~/.claude/skills`） | `agent:claude` |
-| 仓库级 | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+| agent | 作用域 | 路径 | 根目录 key |
+|---|---|---|---|
+| Claude Code | 用户级 | `$CLAUDE_CONFIG_DIR/skills`（通常是 `~/.claude/skills`） | `agent:claude` |
+| Claude Code | 仓库级 | `<workspace>/.claude/skills` | `project-claude:<workspace path>` |
+| Pi | 用户级 | `$PI_CODING_AGENT_DIR/skills`（通常是 `~/.pi/agent/skills`） | `agent:pi` |
+| Pi | 仓库级 | `<workspace>/.pi/skills` | `project-pi:<workspace path>` |
 
-仓库级按打开的工作区列出，且只在目录存在时列出——从没放过 Claude 技能的仓库不会多出
-一行空目录。因为 DSH 不扫描 `.claude`，这些目录由本插件的 provider 交给模型，所以在这里
-停用技能是真的从模型目录里消失，而不只是面板里藏起来。同一个工作区可能同时有
-`.dsh/skills`、`.agents/skills` 和 `.claude/skills`，所以项目类根目录会带上文件夹名
-（`项目 · repo · .claude/skills`）以区分。
+仓库级按打开的工作区列出，且只在目录存在时列出——从没放过该 agent 技能的仓库不会多出
+一行空目录。因为 DSH 既不扫 `.claude` 也不扫 `.pi`，这些目录由本插件的 provider 交给模型，
+所以在这里停用技能是真的从模型目录里消失，而不只是面板里藏起来。同一个工作区可能同时有
+`.dsh/skills`、`.agents/skills`、`.claude/skills` 和 `.pi/skills`，所以项目类根目录会
+带上文件夹名（`repo · .pi/skills`）以区分。
 
 ### 添加的目录
 
