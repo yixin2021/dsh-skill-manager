@@ -273,7 +273,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all seven sources, then 104 tests over a real temporary
+Runs `node --check` on all seven sources, then 114 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including
