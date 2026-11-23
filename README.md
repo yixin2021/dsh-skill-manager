@@ -289,9 +289,12 @@ row is dropped. To keep the Host from being aimed inward, `localhost`, `127.*`,
 `10.*`, `192.168.*`, `169.254.*`, `172.16`–`172.31`, `*.local` and `*.internal`
 hosts are refused.
 
-> Published indexes are read through the GitHub API. The anonymous limit is
-> 60 requests per hour per IP and one market read costs one request per
-> repository; if 403 / rate-limit warnings become common, export
+> Published indexes are read through the GitHub API first. The anonymous limit
+> is 60 requests per hour per IP and one market read costs one request per
+> repository. On a 403/429 the Host falls back to the public archive on
+> `codeload.github.com`: one request per repository, no API budget, and an
+> archive larger than 24 MB is skipped with a warning — so a rate limit never
+> empties the market. To keep the API route reliable too, export
 > `GITHUB_TOKEN` or `GH_TOKEN` where DSH starts to use the authenticated
 > budget. The token is only sent to `api.github.com`, never to another index
 > host.
@@ -357,7 +360,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all nine sources, then 147 tests over a real temporary
+Runs `node --check` on all nine sources, then 149 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including

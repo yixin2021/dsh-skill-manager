@@ -18,7 +18,9 @@ import { gzipSync } from 'node:zlib'
 import { after, before, describe, test } from 'node:test'
 
 import { dispatch } from '../index.js'
+import { downloadArchive } from '../lib/github-source.js'
 import { parseGitUrl } from '../lib/git-source.js'
+import { expandIndex } from '../lib/market.js'
 import { parseRemoteUrl, readRemoteTree, clearTreeCache } from '../lib/remote-source.js'
 import { collectSkillFiles, collectSkillFilesDetailed, findSkillCandidates, readTreeFromDisk, safeSegments } from '../lib/skill-tree.js'
 
@@ -740,6 +742,52 @@ describe('the tree a clone produces', () => {
       await rm(base, { recursive: true, force: true })
     }
   })
+})
+
+test('a streamed archive stops at the byte limit instead of reading it all', async () => {
+  // codeload omits content-length on large archives, so the size limit must be
+  // enforced while the body is read. A huge repository should be abandoned at
+  // the cap, not downloaded in full and rejected afterwards.
+  let cancelled = false
+  const chunk = new Uint8Array(1024)
+  const body = new ReadableStream({
+    pull(controller) {
+      controller.enqueue(chunk)
+    },
+    cancel() {
+      cancelled = true
+    },
+  })
+  const fetchImpl = async () => ({
+    status: 200,
+    ok: true,
+    headers: { get: () => null },
+    body,
+  })
+  await assert.rejects(
+    downloadArchive({ owner: 'owner', repo: 'repo', ref: 'HEAD' }, { fetchImpl, maxBytes: 2048 }),
+    (error) => error.code === 'too-large',
+  )
+  assert.equal(cancelled, true, 'the body is cancelled once the cap is crossed')
+})
+
+test('a rate-limited tree read falls back to the public archive', async () => {
+  // The anonymous tree API is limited to sixty requests an hour per IP. A 403
+  // must not empty the market: the public archive on codeload has no API limit,
+  // and the installer already knows how to unpack it.
+  const calls = []
+  const archive = buildArchive({ 'skills/alpha/SKILL.md': ALPHA, 'skills/beta/SKILL.md': BETA })
+  const fetchImpl = async (url) => {
+    calls.push(String(url))
+    if (String(url).includes('api.github.com')) return { ok: false, status: 403, json: async () => ({}) }
+    if (String(url).includes('codeload.github.com')) return { ok: true, arrayBuffer: async () => archive }
+    throw new Error(`unexpected request: ${url}`)
+  }
+  const result = await expandIndex({ repositories: ['https://github.com/owner/repo'] }, { fetchImpl })
+  assert.equal(result.warnings.length, 0)
+  assert.deepEqual(result.entries.map((entry) => entry.name).sort(), ['alpha', 'beta'])
+  assert.ok(calls.some((url) => url.includes('api.github.com')), 'the API tree is tried first')
+  assert.ok(calls.some((url) => url.includes('codeload.github.com')), 'the archive is the fallback')
 })
 
 /**

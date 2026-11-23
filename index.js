@@ -21,6 +21,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { downloadArchive, readArchive, stripArchiveRoot } from './lib/github-source.js'
 import { parseRemoteUrl, readRemoteTree } from './lib/remote-source.js'
 import { expandIndex, parseCatalogue } from './lib/market.js'
 import {
@@ -757,11 +758,31 @@ async function fetchGitHubFile(repo, path, signal, token) {
   } catch (error) {
     // Second attempt: the raw host, in case only the API path is blocked.
     const raw = `https://raw.githubusercontent.com/${repo}/HEAD/${path}`
-    const headers = { 'user-agent': 'dsh-skill-manager' }
-    if (typeof token === 'string' && token.length > 0) headers.authorization = `Bearer ${token}`
-    const response = await fetch(raw, { headers, signal })
-    if (!response.ok) throw new Error(error instanceof Error ? `${error.message}; raw HTTP ${response.status}` : String(error))
-    return response.text()
+    const rawHeaders = { 'user-agent': 'dsh-skill-manager' }
+    if (typeof token === 'string' && token.length > 0) rawHeaders.authorization = `Bearer ${token}`
+    let rawError
+    try {
+      const response = await fetch(raw, { headers: rawHeaders, signal })
+      if (!response.ok) throw new Error(`raw HTTP ${response.status}`)
+      return await response.text()
+    } catch (failure) {
+      rawError = failure
+    }
+    // Third attempt: the public archive. On a rate-limited API the raw host is
+    // often reset on this network, and neither route can read the index; the
+    // archive on codeload has no API limit and holds the same file.
+    try {
+      const [owner, name] = repo.split('/')
+      const bytes = await downloadArchive({ owner, repo: name, ref: 'HEAD' }, { signal })
+      const files = stripArchiveRoot(readArchive(bytes))
+      const wanted = files.get(path)
+      if (wanted === undefined) throw new Error(`the repository has no "${path}"`)
+      return wanted.toString('utf8')
+    } catch (failure) {
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}; ${rawError instanceof Error ? rawError.message : String(rawError)}; archive ${failure instanceof Error ? failure.message : String(failure)}`,
+      )
+    }
   }
 }
 
