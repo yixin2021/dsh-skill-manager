@@ -1501,21 +1501,17 @@ window.__ModuleLoader__.load({
       }
 
       /**
-       * The folder a directory root is drawn with, on the 24 grid.
+       * The folder `.agents` is drawn with, on the 24 grid.
        *
-       * Drawn here rather than taken from a vendor: these roots are plain
-       * directories on disk, and the panel should say where a skill lives
-       * instead of borrowing a brand for it. It is an outline — stroked, not
-       * filled — because a solid folder collapses into a dark blob at thirteen
-       * to fifteen pixels, while a 2-unit stroke keeps the tab readable.
+       * That directory is a shared one — several tools read it, and this plugin
+       * serves it to the model — so no single vendor's logo belongs there. It
+       * is an outline, stroked rather than filled, because a solid folder
+       * collapses into a dark blob at thirteen to fifteen pixels, while a
+       * 2-unit stroke keeps the tab readable.
        *
        * The tab is what makes this read as a folder rather than a rounded box,
-       * so it is deliberately a full quarter of the width and sits above the
-       * front panel's top edge.
+       * so it is deliberately wide and sits above the front panel's top edge.
        */
-      const FOLDER_BODY =
-        'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'
-
       /**
        * Two folders, one behind the other: `~/.agents`, or a repository's
        * `.agents`, which holds more than one library's worth of skills.
@@ -1527,28 +1523,27 @@ window.__ModuleLoader__.load({
       /**
        * The mark each root is drawn with.
        *
-       * Two kinds live here. A vendor's own mark says which agent's library a
-       * directory is — the OpenAI knot for Codex, Claude's asterisk, Pi's
-       * three-shape glyph from pi.dev, GitHub Copilot's helmet from the official
-       * Primer octicons, and the official tiles from codebuddy.ai and
-       * workbuddy.cn; sources are named in the README. DSH's own directories
-       * carry a drawn folder instead: they are plain paths on disk, and a
-       * vendor logo there claimed a brand the directory does not belong to.
+       * Every row that belongs to a product carries that product's mark — the
+       * DeepSeek whale for `~/.dsh/skills`, the OpenAI knot for Codex, Claude's
+       * asterisk, Pi's three-shape glyph from pi.dev, GitHub Copilot's helmet
+       * from the official Primer octicons, and the official tiles from
+       * codebuddy.ai and workbuddy.cn; sources are named in the README.
+       *
+       * The one exception is `.agents`: that directory is not a product's
+       * library but a shared place several tools read, so it carries a drawn
+       * folder rather than borrowing a single vendor's logo.
        *
        * Monochrome marks inherit `currentColor`, so they follow the theme; the
-       * two tiles keep their own gradient, as their vendors draw them.
+       * two tiles keep their own gradient, as their vendors draw them, and the
+       * whale keeps its own blue.
        */
       const AGENT_MARKS = {
-        // DSH's own library is a directory on disk, so it is drawn as one: a
-        // folder. The DeepSeek whale used to sit here, which made this panel
-        // look like it was branding itself with someone else's logo rather than
-        // showing where the skills live.
-        dsh: { glyph: FOLDER_BODY, viewBox: '0 0 24 24', color: 'currentColor', stroke: 2 },
-        // `~/.agents` and a repository's `.agents`: several libraries in one
-        // place, so the folder carries a second folder inside it. Both shapes
-        // are one path with `fill-rule:evenodd`, which makes the inner folder a
-        // cut-out: the glyph therefore reads as an outline on any surface and
-        // needs no second colour.
+        // DSH's own library: the DeepSeek whale. `~/.dsh/skills` *is* DeepSeek
+        // Harness's directory, so the mark says whose skills these are.
+        dsh: { glyph: "M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45", viewBox: '0 0 24 24', color: '#5786FE' },
+        // `~/.agents` and a repository's `.agents`: a shared directory, not a
+        // product's library. Two folders, one behind the other, stroked so they
+        // read at thirteen pixels as well as fifteen.
         agents: { glyph: `${FOLDER_STACK}${FOLDER_STACK_BACK}`, viewBox: '0 0 24 24', color: 'currentColor', stroke: 2 },
         // Pi's mark, from the vendored favicon at pi.dev: three rectilinear
         // shapes on a 560 grid, drawn as one path with three subpaths. It is

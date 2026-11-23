@@ -156,10 +156,10 @@ octicons 的 `copilot-24.svg`）、以及 codebuddy.ai 和 workbuddy.cn 站点�
 `logo.svg`。单色标用 `currentColor`，跟随主题；两个圆标保留各自的渐变。商标归各自
 所有，这里只用来标识技能来自哪个 agent。
 
-DSH **自己的**目录不一样：`~/.dsh/skills`、`<repo>/.dsh/skills` 和
-`~/.agents/skills` 只是这台机器上的路径，不属于某个产品，所以画的是一个文件夹轮廓，
-不用品牌标。`~/.agents` 和 `<repo>/.agents` 用的是叠起来的双文件夹，因为那个目录
-服务的不止一个 agent。
+`~/.dsh/skills` 和 `<repo>/.dsh/skills` 就是 DeepSeek Harness 自己的技能库，所以用
+的是 DeepSeek 鲸鱼（simple-icons 的 `deepseek.svg`），保留它自己的蓝色。唯一的例外是
+`~/.agents/skills` 和 `<repo>/.agents/skills`：那是多个工具共读的共享目录，不属于任何
+一家，所以画的是描边的双文件夹轮廓，而不是借谁的商标。
 
 ### Claude Code、Pi 与 Copilot，两种作用域
 

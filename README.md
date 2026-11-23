@@ -186,11 +186,11 @@ inherit `currentColor` so they follow the theme; the two tiles keep their own
 gradients. Brand marks belong to their owners and identify the directory the
 skills came from.
 
-DSH's **own** directories are different: `~/.dsh/skills`, `<repo>/.dsh/skills`
-and `~/.agents/skills` are paths on this machine, not another product, so they
-carry a drawn folder outline instead of a brand. `~/.agents` and
-`<repo>/.agents` get a stacked folder, because that directory serves more than
-one agent.
+`~/.dsh/skills` and `<repo>/.dsh/skills` are DeepSeek Harness's own library, so
+they keep the DeepSeek whale (`deepseek.svg` from simple-icons) and its own
+blue. The one exception is `~/.agents/skills` and `<repo>/.agents/skills`: that
+directory is shared by several tools, belongs to no single vendor, and therefore
+carries a stroked folder outline rather than borrowing a logo.
 
 ### Claude Code, Pi and Copilot, in both scopes
 

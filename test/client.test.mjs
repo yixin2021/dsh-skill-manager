@@ -1399,12 +1399,11 @@ function columnsOf(node) {
   return (node.children ?? []).flatMap(columnsOf)
 }
 
-test('a directory root is drawn as a folder, not with a vendor logo', async () => {
-  // `~/.dsh/skills` is a path on this machine, not DeepSeek's product, so the
-  // whale used to sit there and made the panel look like it was branding itself
-  // with someone else's logo. DSH's own rows now carry a drawn folder outline;
-  // `.agents` carries a stacked one, because that directory serves several
-  // agents. A named agent keeps its vendor's mark.
+test('DSH keeps its whale, and only the shared .agents directory is a folder', async () => {
+  // `~/.dsh/skills` is DeepSeek Harness's own library, so it carries the whale.
+  // `.agents` is a shared directory several tools read, so it carries a drawn
+  // folder instead of borrowing one vendor's logo. A named agent keeps its own
+  // mark either way.
   const roots = [
     { key: 'user-dsh', kind: 'user', source: 'user-dsh', agent: 'dsh', path: '/u/.dsh/skills', exists: true, skills: [], trash: [] },
     { key: 'user-agents', kind: 'user', source: 'user-agents', agent: 'dsh', path: '/u/.agents/skills', exists: true, skills: [], trash: [] },
@@ -1414,26 +1413,26 @@ test('a directory root is drawn as a folder, not with a vendor logo', async () =
   ]
   const app = mountClient({ roots })
   await app.settle()
-  const pathOf = (svg) => String(svg.children[0].props.d)
-  const marks = elementsOf(app.render()).filter(
-    (element) => element.type === 'svg' && /^M20 (20|17)a2 2 0 0 0 2-2V/.test(pathOf(element)),
-  )
-  // Tab mark plus card mark for each of the four dsh-owned rows.
-  assert.equal(marks.length, 8, 'every dsh-owned row carries a folder in the tab and the card')
-  for (const svg of marks) {
-    const d = pathOf(svg)
-    assert.ok(!d.startsWith('M23.748'), 'the DeepSeek whale is gone from the root marks')
-    assert.equal(svg.children[0].props.fill, 'none', 'the folder is an outline, not a solid blob')
-    assert.equal(svg.children[0].props.stroke, 'currentColor', 'and it follows the theme')
-  }
-  // `.dsh/skills` is one folder; `.agents/skills` adds the folder behind it.
-  const single = marks.filter((svg) => pathOf(svg) === 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z')
-  const stacked = marks.filter((svg) => pathOf(svg).startsWith('M20 17a2 2 0 0 0 2-2V9'))
-  assert.equal(single.length, 4, '.dsh/skills and its project twin')
-  assert.equal(stacked.length, 4, '.agents/skills and its project twin')
-  assert.match(pathOf(stacked[0]), /M2 8v11a2 2 0 0 0 2 2h14$/, 'the stacked mark carries the folder behind it')
 
-  // A named agent is untouched: Claude keeps its own asterisk.
-  const claude = elementsOf(app.render()).filter((element) => element.type === 'svg' && element.props?.viewBox === '0 0 24 24' && String(element.children[0].props.d).startsWith('M4.709 15.955'))
+  const pathOf = (svg) => String(svg.children[0]?.props?.d ?? '')
+  const marks = elementsOf(app.render()).filter((element) => element.type === 'svg')
+  const whales = marks.filter((svg) => pathOf(svg).startsWith('M23.748'))
+  const folders = marks.filter((svg) => pathOf(svg).startsWith('M20 17a2 2 0 0 0 2-2V9'))
+  const claude = marks.filter((svg) => pathOf(svg).startsWith('M4.709 15.955'))
+
+  // Tab mark plus card mark for each row, in each bucket.
+  assert.equal(whales.length, 4, '.dsh/skills and its project twin carry the DeepSeek whale')
+  assert.equal(folders.length, 4, '.agents/skills and its project twin carry the folder')
   assert.equal(claude.length, 2, 'Claude Code keeps its brand mark in both places')
+
+  // The whale keeps its own blue; the folder is an outline in the theme colour.
+  for (const whale of whales) {
+    assert.equal(whale.props.style.color, '#5786FE')
+    assert.equal(whale.children[0].props.fill, 'currentColor')
+  }
+  for (const folder of folders) {
+    assert.equal(folder.children[0].props.fill, 'none', 'the folder is an outline, not a solid blob')
+    assert.equal(folder.children[0].props.stroke, 'currentColor', 'and it follows the theme')
+    assert.match(pathOf(folder), /M2 8v11a2 2 0 0 0 2 2h14$/, 'with the folder behind it, for a shared directory')
+  }
 })
