@@ -32,7 +32,7 @@ for turning one off without editing files. This plugin adds that surface.
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
 | **Known libraries** | Codex, Claude Code, Pi, GitHub Copilot, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
 | **Claude Code, Pi and Copilot skills** | Claude Code's user library (`~/.claude/skills`), Pi's (`~/.pi/agent/skills`) and GitHub Copilot's (`~/.copilot/skills`), plus each repository's own `.claude/skills`, `.pi/skills` and `.github/skills`, are listed, switched, installed into and loaded by DSH. |
-| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and published indexes, and installs a skill with one click. Its toolbar manages **custom index sources**, so any GitHub repository or JSON index can feed the same cards; each card's **View source** opens that skill's own folder. Browsing is offline-first; installing reuses the same remote path as a pasted link. |
+| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and published indexes, and installs a skill with one click. It opens as an **icon grid** with a one-click switch to the detail list, and its toolbar manages **custom index sources**, so any GitHub repository or JSON index can feed the same tiles; each tile's **View source** opens that skill's own folder. Browsing is offline-first; installing reuses the same remote path as a pasted link. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -265,6 +265,21 @@ widen where the panel will fetch from. Installing an entry is an ordinary
 so the same size limits, conflicts and "choose a skill" step apply as for a
 pasted link.
 
+#### Icon grid or list
+
+The market opens as an **icon grid**: every skill is a 132 px tile carrying its
+initials (the first letters of two words, or the first two letters of one,
+tinted by a hue derived from its id), its name, its author, and the **View
+source** and **Install** buttons. No icon file is downloaded — a two-hundred
+entry catalogue would become two hundred requests — and the tile is computed
+from the entry itself, so it stays the same across reloads and is identical in
+both views. Search, index sources, reload and the view switch all sit in the
+toolbar above it.
+
+Switch to **List** to read the descriptions: the same entries become full-width
+cards with description, tags and origin chip. Both views share one install path
+and one source link.
+
 #### Custom index sources
 
 The market toolbar carries an **Index sources** button. Its dialog lists every
@@ -360,7 +375,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all nine sources, then 149 tests over a real temporary
+Runs `node --check` on all nine sources, then 151 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including

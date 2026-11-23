@@ -259,7 +259,10 @@ test('every stylesheet rule stays inside this package namespace', () => {
     .map((chunk) => chunk.split('{')[0].trim())
     .filter((selector) => selector.length > 0)
   for (const selector of bare) {
-    assert.match(selector, /^\.dsk-/, `selector escapes the namespace: ${selector}`)
+    // A theme-scoped rule may lead with the Host's own dark-theme attribute —
+    // that is an ambient switch, not an authored class, so it cannot collide
+    // with another plugin. Everything the rule actually paints stays `dsk-`.
+    assert.match(selector, /^(?:\[data-ds-dark-theme\]\s+)?\.dsk-/, `selector escapes the namespace: ${selector}`)
   }
 })
 
@@ -1253,4 +1256,99 @@ test('a refused index link is explained in the panel language, not the Host Engl
   assert.match(app.text(), /该主机在本机或私有网络内，技能市场不会读取它。/)
   assert.doesNotMatch(app.text(), /private network, so the market will not read it/)
   assert.equal(elementsOf(app.render()).filter((element) => element.props?.['data-dsk-source-error']).length, 1)
+})
+
+test('the market opens as an icon grid, and switches to the row list', async () => {
+  // A catalogue of two hundred skills is unreadable as two hundred full-width
+  // rows, so the market paints tiles by default and keeps the description card
+  // one click away.
+  const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
+  const entries = [
+    { id: 'alpha-one', name: 'alpha-one', description: 'First.', author: 'owner', tags: [], source: 'https://github.com/owner/repo', path: 'a', view: 'https://github.com/owner/repo/tree/HEAD/a', origin: 'index' },
+    { id: 'beta two', name: 'beta two', description: 'Second.', author: 'owner', tags: [], source: 'https://github.com/owner/repo', path: 'b', view: 'https://github.com/owner/repo/tree/HEAD/b', origin: 'index' },
+  ]
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'market') return { status: 200, json: async () => ({ ok: true, entries, sources: [], warnings: [], skipped: 0 }) }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+  await app.click('技能市场')
+
+  // Default: a grid, with one tile per entry.
+  const grid = elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid'] === 'true')
+  assert.ok(grid, 'the market paints a grid by default')
+  const tiles = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-market'])
+  assert.equal(tiles.length, 2)
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-card').length, 0, 'no full-width rows in the grid')
+
+  // The tile shows a glyph, the name, and keeps both actions.
+  const glyphs = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-tile-glyph')
+  assert.equal(glyphs.length, 2)
+  // The letters are taken from the name as written; the tile uppercases them
+  // in CSS, so the DOM keeps the catalogue's own spelling.
+  assert.deepEqual(
+    glyphs.map((glyph) => glyph.children.join('')),
+    ['ao', 'bt'],
+    'two words contribute their initials; one word contributes two letters',
+  )
+  assert.match(/[^}]*text-transform:uppercase/.exec(stylesheetOf(loadClient()))?.[0] ?? '', /uppercase/, 'the tile draws the glyph in capitals')
+  for (const glyph of glyphs) {
+    // The hue travels as a custom property so the stylesheet can resolve a
+    // light and a dark pair of colours from it; an inline colour could not
+    // follow the theme.
+    assert.match(String(glyph.props.style['--dsk-tile-hue']), /^\d+$/, 'the tile carries a derived hue')
+  }
+  assert.notEqual(
+    glyphs[0].props.style['--dsk-tile-hue'],
+    glyphs[1].props.style['--dsk-tile-hue'],
+    'two different ids derive two different tints',
+  )
+  const css = stylesheetOf(loadClient())
+  assert.match(css, /\.dsk-market-tile-glyph\{[^}]*hsl\(var\(--dsk-tile-hue/, 'the tile colours come from the hue')
+  assert.match(css, /\[data-ds-dark-theme\] \.dsk-market-tile-glyph\{/, 'the dark theme gets its own tint and label')
+  const firstTile = tiles[0]
+  const sourceLink = elementsOf(firstTile).find((element) => element.type === 'a')
+  assert.equal(sourceLink.props.href, 'https://github.com/owner/repo/tree/HEAD/a')
+  assert.equal(sourceLink.props['aria-label'], '查看来源', 'the icon-only link keeps an accessible name')
+  const install = app.buttons().filter((button) => button.text === '安装')
+  assert.equal(install.length, 2, 'every tile keeps its install button')
+
+  // Switching to the list repaints the same entries as cards.
+  await app.click('列表')
+  assert.equal(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid']), undefined, 'the grid is gone')
+  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-card')
+  assert.equal(cards.length, 2)
+  assert.match(app.text(), /First\./, 'the description returns with the list view')
+
+  await app.click('图标')
+  assert.ok(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid'] === 'true'), 'and the grid comes back')
+})
+
+test('the primary button keeps its own fill under the cursor', () => {
+  // `.dsk-button:hover:not(:disabled)` is (0,3,0) while `.dsk-button-primary` is
+  // only (0,1,0), so the generic hover won on specificity no matter where it sat
+  // and repainted the install button with the layer background while the label
+  // stayed light: the button vanished exactly when the pointer reached it. The
+  // fix restates the hover at the same weight, after the generic rule.
+  const css = stylesheetOf(loadClient())
+  const genericHover = css.indexOf('.dsk-button:hover:not(:disabled){')
+  const brand = css.indexOf('.dsk-button-primary{')
+  const brandHover = css.indexOf('.dsk-button-primary:hover:not(:disabled){')
+  assert.ok(genericHover >= 0 && brand >= 0 && brandHover >= 0, 'all three rules exist')
+  assert.ok(brandHover > genericHover, 'the brand hover rule comes after the generic one, so it wins')
+  assert.ok(brandHover > brand, 'and after the brand base rule')
+  const body = /\.dsk-button-primary:hover:not\(:disabled\)\{([^}]*)\}/.exec(css)
+  assert.doesNotMatch(body[1], /background:var\(--dsw-alias-bg-layer/, 'the brand fill is not replaced by a surface colour')
+  assert.match(body[1], /brand-primary/)
+  // A themed surface colour as the label would sink to ~4:1 on the brand blue
+  // in both themes; white holds ~4.3:1 and reads identically in light and dark.
+  const base = /\.dsk-button-primary\{([^}]*)\}/.exec(css)
+  assert.match(base[1], /color:#fff/i, 'the primary label is white, not a themed surface colour')
+  assert.doesNotMatch(base[1], /color:var\(--dsw-alias-bg-base\)/)
+
+  // The small modifier must also follow `.dsk-button`, or the 32px base wins.
+  assert.ok(css.indexOf('.dsk-button-small{') > css.indexOf('.dsk-button{'), '.dsk-button-small follows .dsk-button')
+  assert.ok(css.indexOf('.dsk-link-icon{') > css.indexOf('.dsk-link{'), '.dsk-link-icon follows .dsk-link')
 })

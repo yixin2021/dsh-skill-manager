@@ -83,6 +83,9 @@ window.__ModuleLoader__.load({
       'market.fromIndex': 'Index',
       'market.fromBundled': 'Bundled',
       'market.count': '{count} skills available',
+      'market.viewLabel': 'Market view',
+      'market.viewIcons': 'Icons',
+      'market.viewList': 'List',
       'action.marketSources': 'Index sources',
       'marketSources.title': 'Market index sources',
       'marketSources.subtitle': 'Where the market reads installable skills from',
@@ -261,6 +264,9 @@ window.__ModuleLoader__.load({
       'market.fromIndex': '索引',
       'market.fromBundled': '内置',
       'market.count': '共 {count} 个可用技能',
+      'market.viewLabel': '市场视图',
+      'market.viewIcons': '图标',
+      'market.viewList': '列表',
       'action.marketSources': '索引源',
       'marketSources.title': '技能市场索引源',
       'marketSources.subtitle': '技能市场从这里读取可安装的技能',
@@ -663,10 +669,27 @@ window.__ModuleLoader__.load({
         '.dsk-market-scroll::-webkit-scrollbar{width:8px}',
         '.dsk-market-scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb, var(--dsw-alias-label-secondary) 45%, transparent);border-radius:4px}',
         '.dsk-market-scroll::-webkit-scrollbar-track{background:transparent}',
-        '.dsk-market-toolbar{flex-wrap:nowrap}',
+        '.dsk-market-toolbar{flex-wrap:wrap}',
         '.dsk-market-search{flex:1 1 320px;max-width:460px;min-width:0}',
         '.dsk-market-list{display:flex;flex-direction:column;gap:10px;flex:none}',
         '.dsk-market-card{display:flex;flex:none;align-items:flex-start;gap:12px;padding:14px 16px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;flex:none}',
+        '.dsk-market-tile{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 10px 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);min-width:0}',
+        '.dsk-market-tile:hover{border-color:var(--dsw-alias-brand-primary)}',
+        // The tile carries only a hue in `--dsk-tile-hue`; the two colours are
+        // resolved here so they follow the theme. A dark surface needs a light
+        // tint and a pale label, which an inline colour could not express.
+        '.dsk-market-tile-glyph{display:flex;align-items:center;justify-content:center;width:46px;height:46px;flex:none;border-radius:12px;background:color-mix(in srgb,hsl(var(--dsk-tile-hue,220) 62% 55%) 20%,var(--dsw-alias-bg-layer-2));color:hsl(var(--dsk-tile-hue,220) 58% 36%);font-size:16px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}',
+        '[data-ds-dark-theme] .dsk-market-tile-glyph{background:color-mix(in srgb,hsl(var(--dsk-tile-hue,220) 66% 62%) 26%,var(--dsw-alias-bg-layer-2));color:hsl(var(--dsk-tile-hue,220) 74% 76%)}',
+        '.dsk-market-tile-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+        '.dsk-market-tile-author{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-secondary)}',
+        '.dsk-market-tile-actions{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto}',
+        '.dsk-market-tile .dsk-market-tile-actions{min-height:28px}',
+        '.dsk-seg{display:inline-flex;align-items:center;gap:2px;flex:none;padding:2px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-seg>button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}',
+        '.dsk-seg>button:hover{color:var(--dsw-alias-label-primary)}',
+        '.dsk-seg>button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+        '.dsk-seg>button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
         '.dsk-market-main{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 auto}',
         '.dsk-market-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
         '.dsk-market-desc{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
@@ -697,10 +720,24 @@ window.__ModuleLoader__.load({
         '.dsk-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}',
         '.dsk-button:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}',
         '.dsk-button:disabled{opacity:.5;cursor:default}',
-        '.dsk-button-primary{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}',
+        // The label is white, not `bg-base`: the brand blue is a mid-tone in
+        // both themes, so a themed surface colour would sit at ~4:1 either way,
+        // while white reaches ~4.3:1 on the same fill and reads the same in
+        // light and dark.
+        '.dsk-button-primary{border-color:transparent;background:var(--dsw-alias-brand-primary);color:#fff}',
+        // The generic hover rule above would repaint this one with the layer
+        // background, leaving the light label on a light surface: the "button
+        // disappears under the cursor" bug. Keep the brand fill and only shift
+        // its tone, so the label colour still has the contrast it was chosen for.
+        '.dsk-button-primary:hover:not(:disabled){background:color-mix(in srgb, var(--dsw-alias-brand-primary) 86%, var(--dsw-alias-label-primary))}',
         '.dsk-button-quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary);padding:0 8px}',
         '.dsk-button-quiet:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
         '.dsk-button-danger{color:var(--dsw-alias-state-error-primary)}',
+        // Modifiers sit after their base rule: same specificity, so the later
+        // declaration is the one that applies. Putting them before
+        // `.dsk-button`/`.dsk-link` silently does nothing.
+        '.dsk-button-small{height:28px;padding:0 10px;font-size:12px}',
+        '.dsk-link-icon{width:28px;height:30px;padding:0;justify-content:center}',
         '.dsk-roots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
         '.dsk-root-tab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}',
         '.dsk-root-tab:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}',
@@ -904,6 +941,8 @@ window.__ModuleLoader__.load({
         marketBusy: undefined,
         /* The index sources the market reads, for the manager dialog. */
         marketSources: undefined,
+        /* How the market paints its entries: an icon grid, or the row list. */
+        marketView: 'icons',
       }
       const listeners = new Set()
       const emit = () => {
@@ -1027,6 +1066,13 @@ window.__ModuleLoader__.load({
         },
         setMarketQuery(value) {
           set({ marketQuery: typeof value === 'string' ? value : '' })
+        },
+        /**
+         * Switch the market between the icon grid and the row list.
+         * @param view - `icons` or `list`; anything else keeps the grid.
+         */
+        setMarketView(view) {
+          set({ marketView: view === 'list' ? 'list' : 'icons' })
         },
         /**
          * Install one catalogue entry into the library.
@@ -2283,6 +2329,81 @@ window.__ModuleLoader__.load({
       }
 
       /**
+       * The letters a market tile shows, and the tint behind them.
+       *
+       * The catalogue carries no icon file, and downloading one per card would
+       * turn a browse into a hundred requests. So a tile is drawn from the name
+       * the entry already has: its first letters, on a tint derived from its
+       * id. The derivation is deterministic, so the same skill keeps the same
+       * tile across reloads and between the two views.
+       *
+       * @param entry - one catalogue entry.
+       * @returns the letters, and a hue in degrees.
+       */
+      function marketGlyph(entry) {
+        const words = String(entry.name ?? '')
+          .replace(/[_-]+/g, ' ')
+          .split(/\s+/)
+          .filter(Boolean)
+        const letters =
+          words.length === 0
+            ? '?'
+            : words.length === 1
+              ? words[0].slice(0, 2)
+              : `${words[0][0]}${words[1][0]}`
+        const key = String(entry.id ?? entry.name ?? '')
+        let hash = 0
+        for (let index = 0; index < key.length; index += 1) hash = (hash * 31 + key.charCodeAt(index)) % 360
+        return { letters, hue: hash }
+      }
+
+      /** One market entry as an icon tile. */
+      function MarketTile({ entry, state, disabled, onInstall }) {
+        const busy = state.marketBusy === entry.id
+        const glyph = marketGlyph(entry)
+        const href = entry.view || entry.source
+        return h(
+          'div',
+          { className: 'dsk-market-tile', 'data-dsk-market': entry.id, title: entry.description || entry.name },
+          h(
+            'span',
+            {
+              className: 'dsk-market-tile-glyph',
+              'aria-hidden': 'true',
+              title: entry.name,
+              style: { '--dsk-tile-hue': String(glyph.hue) },
+            },
+            glyph.letters,
+          ),
+          h('span', { className: 'dsk-market-tile-name' }, entry.name),
+          entry.author ? h('span', { className: 'dsk-market-tile-author' }, entry.author) : null,
+          h(
+            'div',
+            { className: 'dsk-market-tile-actions' },
+            href
+              ? h(
+                  'a',
+                  {
+                    className: 'dsk-link dsk-link-icon',
+                    href,
+                    target: '_blank',
+                    rel: 'noreferrer noopener',
+                    title: t('market.openSource'),
+                    'aria-label': t('market.openSource'),
+                  },
+                  h(GithubGlyph, { size: 13 }),
+                )
+              : null,
+            h(
+              Action,
+              { variant: 'primary', className: 'dsk-button-small', onClick: () => onInstall(entry), disabled },
+              busy ? t('market.installing') : t('market.install'),
+            ),
+          ),
+        )
+      }
+
+      /**
        * The market: a curated catalogue read from the package, one-click install.
        *
        * It shares the install path with a pasted link, so the only thing this
@@ -2321,12 +2442,36 @@ window.__ModuleLoader__.load({
                 onChange: (event) => store.setMarketQuery(event.target.value),
               }),
             ),
-            h(Action, { variant: 'quiet', onClick: () => store.loadMarket(true), disabled: state.marketBusy !== undefined }, t('action.reload')),
             h(
               Action,
               { variant: 'quiet', onClick: () => store.openMarketSources(), 'data-dsk-market-sources': 'true' },
               t('action.marketSources'),
             ),
+            h(
+              'div',
+              { className: 'dsk-seg', role: 'group', 'aria-label': t('market.viewLabel') },
+              h(
+                'button',
+                {
+                  type: 'button',
+                  'aria-pressed': state.marketView !== 'list',
+                  'data-dsk-market-view': 'icons',
+                  onClick: () => store.setMarketView('icons'),
+                },
+                t('market.viewIcons'),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  'aria-pressed': state.marketView === 'list',
+                  'data-dsk-market-view': 'list',
+                  onClick: () => store.setMarketView('list'),
+                },
+                t('market.viewList'),
+              ),
+            ),
+            h(Action, { variant: 'quiet', onClick: () => store.loadMarket(true), disabled: state.marketBusy !== undefined }, t('action.reload')),
           ),
           market.warning ? h('div', { className: 'dsk-note' }, market.warning) : null,
           Array.isArray(market.warnings) && market.warnings.length > 0
@@ -2343,48 +2488,52 @@ window.__ModuleLoader__.load({
             ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, market.entries.length === 0 ? t('market.empty') : t('market.noMatch')))
             : h(
                 'div',
-                { className: 'dsk-market-scroll' },
+                { className: 'dsk-market-scroll', 'data-dsk-market-view': state.marketView === 'list' ? 'list' : 'icons' },
                 h(
                   'div',
-                  { className: 'dsk-market-list' },
+                  { className: state.marketView === 'list' ? 'dsk-market-list' : 'dsk-market-grid', 'data-dsk-market-grid': state.marketView === 'list' ? undefined : 'true' },
                   entries.map((entry) => {
-                  const busy = state.marketBusy === entry.id
-                  const disabled = state.marketBusy !== undefined || manageRoots.length === 0
-                  return h(
-                    'div',
-                    { key: entry.id, className: 'dsk-market-card', 'data-dsk-market': entry.id },
-                    h(
+                    const busy = state.marketBusy === entry.id
+                    const disabled = state.marketBusy !== undefined || manageRoots.length === 0
+                    const install = (target) => store.installMarket(target, defaultRoot)
+                    if (state.marketView !== 'list') {
+                      return h(MarketTile, { key: entry.id, entry, state, disabled, onInstall: install })
+                    }
+                    return h(
                       'div',
-                      { className: 'dsk-market-main' },
-                      h('div', { className: 'dsk-market-name' }, entry.name),
-                      entry.description ? h('p', { className: 'dsk-market-desc' }, entry.description) : null,
+                      { key: entry.id, className: 'dsk-market-card', 'data-dsk-market': entry.id },
                       h(
                         'div',
-                        { className: 'dsk-market-meta' },
-                        entry.author ? h('span', { className: 'dsk-market-author' }, entry.author) : null,
-                        h(Chip, { key: '__origin', tone: undefined }, entry.origin === 'index' ? t('market.fromIndex') : t('market.fromBundled')),
-                        ...(entry.tags ?? []).map((tag) => h(Chip, { key: tag, tone: undefined }, tag)),
+                        { className: 'dsk-market-main' },
+                        h('div', { className: 'dsk-market-name' }, entry.name),
+                        entry.description ? h('p', { className: 'dsk-market-desc' }, entry.description) : null,
+                        h(
+                          'div',
+                          { className: 'dsk-market-meta' },
+                          entry.author ? h('span', { className: 'dsk-market-author' }, entry.author) : null,
+                          h(Chip, { key: '__origin', tone: undefined }, entry.origin === 'index' ? t('market.fromIndex') : t('market.fromBundled')),
+                          ...(entry.tags ?? []).map((tag) => h(Chip, { key: tag, tone: undefined }, tag)),
+                        ),
                       ),
-                    ),
-                    h(
-                      'div',
-                      { className: 'dsk-market-actions' },
-                      entry.view || entry.source
-                        ? h(
-                            'a',
-                            { className: 'dsk-link', href: entry.view || entry.source, target: '_blank', rel: 'noreferrer noopener', title: t('market.openSource') },
-                            h(GithubGlyph, { size: 13 }),
-                            h('span', null, t('market.openSource')),
-                          )
-                        : null,
                       h(
-                        Action,
-                        { variant: 'primary', onClick: () => store.installMarket(entry, defaultRoot), disabled },
-                        busy ? t('market.installing') : t('market.install'),
+                        'div',
+                        { className: 'dsk-market-actions' },
+                        entry.view || entry.source
+                          ? h(
+                              'a',
+                              { className: 'dsk-link', href: entry.view || entry.source, target: '_blank', rel: 'noreferrer noopener', title: t('market.openSource') },
+                              h(GithubGlyph, { size: 13 }),
+                              h('span', null, t('market.openSource')),
+                            )
+                          : null,
+                        h(
+                          Action,
+                          { variant: 'primary', onClick: () => store.installMarket(entry, defaultRoot), disabled },
+                          busy ? t('market.installing') : t('market.install'),
+                        ),
                       ),
-                    ),
-                  )
-                }),
+                    )
+                  }),
                 ),
               ),
         )
