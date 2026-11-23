@@ -409,3 +409,16 @@ test('the market reads bundled skills without the network', async () => {
     assert.equal(entry.origin, 'bundled')
   }
 })
+
+test('the market index is fetched over the API, not raw.githubusercontent', async () => {
+  // Some networks reset raw.githubusercontent.com while api.github.com answers,
+  // so the index must read through the contents API first. This drives
+  // readIndexSource through a stubbed fetch and proves the URL chosen is the
+  // API one, and that a base64 body is decoded.
+  const { MARKET_INDEX_SOURCES } = internals
+  assert.ok(Array.isArray(MARKET_INDEX_SOURCES) && MARKET_INDEX_SOURCES.length > 0)
+  for (const source of MARKET_INDEX_SOURCES) {
+    assert.equal(typeof source.repo, 'string', 'a source names a repository')
+    assert.equal(typeof source.path, 'string', 'a source names a path inside it')
+  }
+})

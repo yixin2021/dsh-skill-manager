@@ -227,6 +227,8 @@ The market merges two things:
    repository's git tree once and turns every `SKILL.md` it finds into one
    installable card. The default index ships as `docs/market-index.json` and
    covers `anthropics/skills`, `wshobson/agents` and `anthropics/claude-cookbooks`.
+   It is fetched through the GitHub contents API (with a raw fallback), because
+   some networks reset `raw.githubusercontent.com` while the API answers.
 
 A source that is down only adds a collapsible warning; the bundled file and the
 rest of the panel keep working offline. Fetched indexes are cached for ten

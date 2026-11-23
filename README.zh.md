@@ -185,7 +185,7 @@ Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`�
 市场把两类来源合并在一起：
 
 1. **内置目录** `docs/skills.json`，随包附带，离线也在。
-2. **外部索引源** —— Host 里一份固定的清单（`MARKET_INDEX_SOURCES`），每个是一个列出 GitHub 仓库的 JSON。Host 对每个仓库读一次 git tree，把找到的每个 `SKILL.md` 变成一张可安装的卡片。默认索引就是 `docs/market-index.json`，覆盖 `anthropics/skills`、`wshobson/agents`、`anthropics/claude-cookbooks`。
+2. **外部索引源** —— Host 里一份固定的清单（`MARKET_INDEX_SOURCES`），每个是一个列出 GitHub 仓库的 JSON。Host 对每个仓库读一次 git tree，把找到的每个 `SKILL.md` 变成一张可安装的卡片。默认索引就是 `docs/market-index.json`，覆盖 `anthropics/skills`、`wshobson/agents`、`anthropics/claude-cookbooks`。它通过 GitHub contents API 读取（失败时回退到 raw），因为部分网络会重置 `raw.githubusercontent.com` 而 API 可达。
 
 某个源挂了只会多一条可折叠的警告，内置目录和面板其余部分照常离线可用。抓到的索引缓存 10 分钟。
 

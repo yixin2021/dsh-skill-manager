@@ -586,14 +586,23 @@ function marketFile() {
 /**
  * The published indexes the market reads in addition to the bundled catalogue.
  *
- * Each one points at GitHub repositories; the market expands them into the
- * skills those repositories hold. Keeping the list here (rather than in the
- * page) means a person cannot make the Host fetch an arbitrary URL, and it is
- * the one place to edit when a source moves.
+ * Each index is a JSON document listing GitHub repositories; the market expands
+ * them into the skills those repositories hold. Keeping the list here (rather
+ * than in the page) means a person cannot make the Host fetch an arbitrary
+ * URL, and it is the one place to edit when a source moves.
+ *
+ * An index is identified by a GitHub repository and a path inside it, not a
+ * raw.githubusercontent.com URL: on some networks that host is reset while the
+ * GitHub API is reachable, so the file is fetched through the same API the
+ * tree reader already uses (`/contents`, which returns the file base64-encoded)
+ * with a raw fallback. An index with no repo (an absolute URL) is fetched
+ * directly, so a self-hosted index still works where its host is reachable.
  */
+/** The GitHub REST root used for the tree read and the index read. */
+const GITHUB_API = 'https://api.github.com'
+
 const MARKET_INDEX_SOURCES = [
-  'https://raw.githubusercontent.com/anthropics/skills/main/.dsh-market.json',
-  'https://raw.githubusercontent.com/yixin2021/dsh-skill-manager/main/docs/market-index.json',
+  { repo: 'yixin2021/dsh-skill-manager', path: 'docs/market-index.json' },
 ]
 
 /** How long a fetched index is reused before it is read again. */
@@ -606,34 +615,77 @@ const MARKET_MAX_ENTRIES = 500
 const marketIndexCache = new Map()
 
 /**
- * Read one remote index URL and expand its repositories.
- * @param url - the index URL.
- * @returns the entries and warnings, or a warning when the read failed.
+ * Fetch a file's text from a GitHub repository over the API, which some
+ * networks allow when raw.githubusercontent.com is reset. Falls back to the
+ * raw host for a repository whose API read fails.
+ *
+ * @param repo - `owner/repo`.
+ * @param path - the path inside the repository.
+ * @returns the file's text.
+ * @throws when neither route returns the file.
  */
-async function readIndexSource(url) {
-  const cached = marketIndexCache.get(url)
+async function fetchGitHubFile(repo, path, signal) {
+  const headers = { accept: 'application/vnd.github.raw+json', 'user-agent': 'dsh-skill-manager' }
+  try {
+    const url = `${GITHUB_API}/repos/${repo}/contents/${path}`
+    const response = await fetch(url, { headers, signal })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    // With `application/vnd.github.raw` this is the file bytes; decode defensively.
+    const text = await response.text()
+    // A base64 JSON body arrives when the accept header is not raw; unwrap it.
+    try {
+      const maybe = JSON.parse(text)
+      if (maybe && typeof maybe.content === 'string' && maybe.encoding === 'base64') {
+        return Buffer.from(maybe.content, 'base64').toString('utf8')
+      }
+    } catch {
+      // Not JSON — the raw body is the text we want.
+    }
+    return text
+  } catch (error) {
+    // Second attempt: the raw host, in case only the API path is blocked.
+    const raw = `https://raw.githubusercontent.com/${repo}/HEAD/${path}`
+    const response = await fetch(raw, { headers: { 'user-agent': 'dsh-skill-manager' }, signal })
+    if (!response.ok) throw new Error(error instanceof Error ? `${error.message}; raw HTTP ${response.status}` : String(error))
+    return response.text()
+  }
+}
+
+/**
+ * Read one index source and expand its repositories.
+ *
+ * @param source - `{ repo?, path }` or a plain URL string.
+ * @returns the entries and warnings, or warnings when the read failed.
+ */
+async function readIndexSource(source) {
+  const label = typeof source === 'string' ? source : `${source.repo}:${source.path}`
+  const cached = marketIndexCache.get(label)
   if (cached !== undefined && Date.now() - cached.at < MARKET_INDEX_TTL_MS) {
     return cached
   }
   const result = { at: Date.now(), entries: [], warnings: [] }
+  const controller = typeof AbortController === 'function' ? new AbortController() : undefined
+  const timer = controller === undefined ? undefined : setTimeout(() => controller.abort(), 12_000)
   try {
-    const controller = typeof AbortController === 'function' ? new AbortController() : undefined
-    const timer = controller === undefined ? undefined : setTimeout(() => controller.abort(), 8_000)
     let raw
-    try {
-      const response = await fetch(url, { headers: { accept: 'application/json', 'user-agent': 'dsh-skill-manager' }, signal: controller?.signal })
+    if (typeof source === 'string') {
+      const response = await fetch(source, { headers: { accept: 'application/json', 'user-agent': 'dsh-skill-manager' }, signal: controller?.signal })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       raw = await response.json()
-    } finally {
-      if (timer !== undefined) clearTimeout(timer)
+    } else {
+      const text = await fetchGitHubFile(source.repo, source.path, controller?.signal)
+      raw = JSON.parse(text)
     }
     const expanded = await expandIndex(raw, { seen: new Set() })
     result.entries = expanded.entries
     result.warnings = expanded.warnings
   } catch (error) {
-    result.warnings = [`Could not read the market index ${url}: ${error instanceof Error ? error.message : String(error)}`]
+    const kind = typeof source === 'string' ? 'URL' : 'index'
+    result.warnings = [`Could not read the market ${kind} ${label}: ${error instanceof Error ? error.message : String(error)}`]
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
   }
-  marketIndexCache.set(url, result)
+  marketIndexCache.set(label, result)
   return result
 }
 
@@ -678,7 +730,7 @@ async function readMarket(options = {}) {
   }
 
   if (options.includeIndexes !== false) {
-    const results = await Promise.all(MARKET_INDEX_SOURCES.map((url) => readIndexSource(url)))
+    const results = await Promise.all(MARKET_INDEX_SOURCES.map((source) => readIndexSource(source)))
     for (const result of results) {
       for (const warning of result.warnings) warnings.push(warning)
       for (const entry of result.entries) {
