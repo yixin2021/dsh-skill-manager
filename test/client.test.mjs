@@ -1258,10 +1258,10 @@ test('a refused index link is explained in the panel language, not the Host Engl
   assert.equal(elementsOf(app.render()).filter((element) => element.props?.['data-dsk-source-error']).length, 1)
 })
 
-test('the market opens as an icon grid, and switches to the row list', async () => {
-  // A catalogue of two hundred skills is unreadable as two hundred full-width
-  // rows, so the market paints tiles by default and keeps the description card
-  // one click away.
+test('the market paints two-column cards, with no view switch to get lost in', async () => {
+  // Two hundred full-width rows read as a table of empty space, and a grid of
+  // tiles hides the description; so the market has exactly one layout. This
+  // asserts the card shape and that the switch is gone, not merely unpainted.
   const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
   const entries = [
     { id: 'alpha-one', name: 'alpha-one', description: 'First.', author: 'owner', tags: [], source: 'https://github.com/owner/repo', path: 'a', view: 'https://github.com/owner/repo/tree/HEAD/a', origin: 'index' },
@@ -1276,53 +1276,23 @@ test('the market opens as an icon grid, and switches to the row list', async () 
   }
   await app.click('技能市场')
 
-  // Default: a grid, with one tile per entry.
-  const grid = elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid'] === 'true')
-  assert.ok(grid, 'the market paints a grid by default')
-  const tiles = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-market'])
-  assert.equal(tiles.length, 2)
-  assert.equal(elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item').length, 0, 'no full-width cards in the grid')
-
-  // The tile shows a glyph, the name, and keeps both actions.
-  const glyphs = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-tile-glyph')
-  assert.equal(glyphs.length, 2)
-  // The letters are taken from the name as written; the tile uppercases them
-  // in CSS, so the DOM keeps the catalogue's own spelling.
-  assert.deepEqual(
-    glyphs.map((glyph) => glyph.children.join('')),
-    ['ao', 'bt'],
-    'two words contribute their initials; one word contributes two letters',
-  )
-  assert.match(/[^}]*text-transform:uppercase/.exec(stylesheetOf(loadClient()))?.[0] ?? '', /uppercase/, 'the tile draws the glyph in capitals')
-  for (const glyph of glyphs) {
-    // The hue travels as a custom property so the stylesheet can resolve a
-    // light and a dark pair of colours from it; an inline colour could not
-    // follow the theme.
-    assert.match(String(glyph.props.style['--dsk-tile-hue']), /^\d+$/, 'the tile carries a derived hue')
+  // One container, one card per entry, and nothing that switches layouts.
+  const grid = elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-cards'] !== undefined)
+  assert.ok(grid, 'the cards sit in the two-column container')
+  assert.equal(grid.props['data-dsk-market-cards'], '2')
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item').length, 2)
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.['data-dsk-market-view'] !== undefined).length, 1, 'the scroll region reports one view only')
+  for (const gone of ['图标', '列表']) {
+    assert.ok(!app.buttons().some((button) => button.text === gone), `no ${gone} switch remains`)
   }
-  assert.notEqual(
-    glyphs[0].props.style['--dsk-tile-hue'],
-    glyphs[1].props.style['--dsk-tile-hue'],
-    'two different ids derive two different tints',
-  )
   const css = stylesheetOf(loadClient())
-  assert.match(css, /\.dsk-market-tile-glyph\{[^}]*hsl\(var\(--dsk-tile-hue/, 'the tile colours come from the hue')
-  assert.match(css, /\[data-ds-dark-theme\] \.dsk-market-tile-glyph\{/, 'the dark theme gets its own tint and label')
-  const firstTile = tiles[0]
-  const sourceLink = elementsOf(firstTile).find((element) => element.type === 'a')
-  assert.equal(sourceLink.props.href, 'https://github.com/owner/repo/tree/HEAD/a')
-  assert.equal(sourceLink.props['aria-label'], '查看来源', 'the icon-only link keeps an accessible name')
-  const install = app.buttons().filter((button) => button.text === '安装')
-  assert.equal(install.length, 2, 'every tile keeps its install button')
+  assert.doesNotMatch(css, /\.dsk-market-grid\{/, 'the grid stylesheet is gone')
+  assert.doesNotMatch(css, /\.dsk-market-tile\{/, 'the tile stylesheet is gone')
+  assert.doesNotMatch(css, /\.dsk-seg\{/, 'the switch stylesheet is gone')
 
-  // Switching to the list repaints the same entries as cards.
-  await app.click('列表')
-  assert.equal(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid']), undefined, 'the grid is gone')
-  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item')
-  assert.equal(cards.length, 2)
-  assert.ok(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-cards'] === 'true'), 'the cards sit in the two-column grid')
-  assert.match(app.text(), /First\./, 'the description returns with the list view')
   // Each card is a name line, a description, its tags and its actions.
+  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item')
+  assert.match(app.text(), /First\./, 'the description is on the card')
   const first = cards[0]
   assert.ok(elementsOf(first).find((element) => element.props?.className === 'dsk-market-item-name'), 'the name line')
   assert.ok(elementsOf(first).find((element) => element.props?.className === 'dsk-market-item-desc'), 'the description')
@@ -1330,9 +1300,8 @@ test('the market opens as an icon grid, and switches to the row list', async () 
   assert.ok(foot, 'the actions sit on their own line')
   const footLabels = elementsOf(foot).map((element) => element.children?.[0]).filter((child) => typeof child === 'string')
   assert.ok(footLabels.includes('查看来源'), 'the source link is at the bottom left')
-
-  await app.click('图标')
-  assert.ok(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid'] === 'true'), 'and the grid comes back')
+  const install = app.buttons().filter((button) => button.text === '安装')
+  assert.equal(install.length, 2, 'every card keeps its install button')
 })
 
 test('the primary button keeps its own fill under the cursor', () => {
@@ -1357,9 +1326,17 @@ test('the primary button keeps its own fill under the cursor', () => {
   assert.match(base[1], /color:#fff/i, 'the primary label is white, not a themed surface colour')
   assert.doesNotMatch(base[1], /color:var\(--dsw-alias-bg-base\)/)
 
-  // The small modifier must also follow `.dsk-button`, or the 32px base wins.
-  assert.ok(css.indexOf('.dsk-button-small{') > css.indexOf('.dsk-button{'), '.dsk-button-small follows .dsk-button')
-  assert.ok(css.indexOf('.dsk-link-icon{') > css.indexOf('.dsk-link{'), '.dsk-link-icon follows .dsk-link')
+  // Any modifier must follow the base rule it narrows: same specificity, so the
+  // later declaration is the one that applies.
+  for (const base of ['dsk-button', 'dsk-link']) {
+    const at = css.indexOf(`.${base}{`)
+    assert.ok(at >= 0, `.${base} is styled`)
+    for (const modifier of ['dsk-button-primary', 'dsk-button-quiet', 'dsk-link-icon']) {
+      const rule = css.indexOf(`.${modifier}{`)
+      if (rule < 0) continue
+      assert.ok(rule > at, `.${modifier} follows .${base}`)
+    }
+  }
 })
 
 test('a market card says when the skill is already on disk', async () => {
@@ -1384,7 +1361,6 @@ test('a market card says when the skill is already on disk', async () => {
     return { status: 200, json: async () => ({ ok: true, roots }) }
   }
   await app.click('技能市场')
-  await app.click('列表')
 
   const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item')
   const installedTag = (card) => elementsOf(card).find((element) => String(element.props?.className ?? '').includes('dsk-tag-active'))
@@ -1422,3 +1398,42 @@ function columnsOf(node) {
   if (Array.isArray(node)) return node.flatMap(columnsOf)
   return (node.children ?? []).flatMap(columnsOf)
 }
+
+test('a directory root is drawn as a folder, not with a vendor logo', async () => {
+  // `~/.dsh/skills` is a path on this machine, not DeepSeek's product, so the
+  // whale used to sit there and made the panel look like it was branding itself
+  // with someone else's logo. DSH's own rows now carry a drawn folder outline;
+  // `.agents` carries a stacked one, because that directory serves several
+  // agents. A named agent keeps its vendor's mark.
+  const roots = [
+    { key: 'user-dsh', kind: 'user', source: 'user-dsh', agent: 'dsh', path: '/u/.dsh/skills', exists: true, skills: [], trash: [] },
+    { key: 'user-agents', kind: 'user', source: 'user-agents', agent: 'dsh', path: '/u/.agents/skills', exists: true, skills: [], trash: [] },
+    { key: 'project-dsh:/r', kind: 'project', source: 'project-dsh', agent: 'dsh', path: '/r/.dsh/skills', workspacePath: '/r', workspaceTitle: 'r', exists: true, skills: [], trash: [] },
+    { key: 'project-agents:/r', kind: 'project', source: 'project-agents', agent: 'dsh', path: '/r/.agents/skills', workspacePath: '/r', exists: true, skills: [], trash: [] },
+    { key: 'agent:claude', kind: 'agent', source: 'custom', agent: 'claude', path: '/u/.claude/skills', exists: true, skills: [], trash: [] },
+  ]
+  const app = mountClient({ roots })
+  await app.settle()
+  const pathOf = (svg) => String(svg.children[0].props.d)
+  const marks = elementsOf(app.render()).filter(
+    (element) => element.type === 'svg' && /^M20 (20|17)a2 2 0 0 0 2-2V/.test(pathOf(element)),
+  )
+  // Tab mark plus card mark for each of the four dsh-owned rows.
+  assert.equal(marks.length, 8, 'every dsh-owned row carries a folder in the tab and the card')
+  for (const svg of marks) {
+    const d = pathOf(svg)
+    assert.ok(!d.startsWith('M23.748'), 'the DeepSeek whale is gone from the root marks')
+    assert.equal(svg.children[0].props.fill, 'none', 'the folder is an outline, not a solid blob')
+    assert.equal(svg.children[0].props.stroke, 'currentColor', 'and it follows the theme')
+  }
+  // `.dsh/skills` is one folder; `.agents/skills` adds the folder behind it.
+  const single = marks.filter((svg) => pathOf(svg) === 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z')
+  const stacked = marks.filter((svg) => pathOf(svg).startsWith('M20 17a2 2 0 0 0 2-2V9'))
+  assert.equal(single.length, 4, '.dsh/skills and its project twin')
+  assert.equal(stacked.length, 4, '.agents/skills and its project twin')
+  assert.match(pathOf(stacked[0]), /M2 8v11a2 2 0 0 0 2 2h14$/, 'the stacked mark carries the folder behind it')
+
+  // A named agent is untouched: Claude keeps its own asterisk.
+  const claude = elementsOf(app.render()).filter((element) => element.type === 'svg' && element.props?.viewBox === '0 0 24 24' && String(element.children[0].props.d).startsWith('M4.709 15.955'))
+  assert.equal(claude.length, 2, 'Claude Code keeps its brand mark in both places')
+})

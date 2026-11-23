@@ -84,9 +84,6 @@ window.__ModuleLoader__.load({
       'market.fromBundled': 'Bundled',
       'market.count': '{count} skills available',
       'market.noDescription': 'No description in the index.',
-      'market.viewLabel': 'Market view',
-      'market.viewIcons': 'Icons',
-      'market.viewList': 'List',
       'action.marketSources': 'Index sources',
       'marketSources.title': 'Market index sources',
       'marketSources.subtitle': 'Where the market reads installable skills from',
@@ -266,9 +263,6 @@ window.__ModuleLoader__.load({
       'market.fromBundled': '内置',
       'market.count': '共 {count} 个可用技能',
       'market.noDescription': '索引里没有提供描述。',
-      'market.viewLabel': '市场视图',
-      'market.viewIcons': '图标',
-      'market.viewList': '列表',
       'action.marketSources': '索引源',
       'marketSources.title': '技能市场索引源',
       'marketSources.subtitle': '技能市场从这里读取可安装的技能',
@@ -688,23 +682,6 @@ window.__ModuleLoader__.load({
         '.dsk-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font-size:12px;white-space:nowrap}',
         '.dsk-tag-active{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent);color:var(--dsw-alias-state-success-primary)}',
         '.dsk-tag-more{background:transparent;padding:0 2px}',
-        '.dsk-market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;flex:none}',
-        '.dsk-market-tile{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 10px 10px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);min-width:0}',
-        '.dsk-market-tile:hover{border-color:var(--dsw-alias-brand-primary)}',
-        // The tile carries only a hue in `--dsk-tile-hue`; the two colours are
-        // resolved here so they follow the theme. A dark surface needs a light
-        // tint and a pale label, which an inline colour could not express.
-        '.dsk-market-tile-glyph{display:flex;align-items:center;justify-content:center;width:46px;height:46px;flex:none;border-radius:12px;background:color-mix(in srgb,hsl(var(--dsk-tile-hue,220) 62% 55%) 20%,var(--dsw-alias-bg-layer-2));color:hsl(var(--dsk-tile-hue,220) 58% 36%);font-size:16px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}',
-        '[data-ds-dark-theme] .dsk-market-tile-glyph{background:color-mix(in srgb,hsl(var(--dsk-tile-hue,220) 66% 62%) 26%,var(--dsw-alias-bg-layer-2));color:hsl(var(--dsk-tile-hue,220) 74% 76%)}',
-        '.dsk-market-tile-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}',
-        '.dsk-market-tile-author{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-secondary)}',
-        '.dsk-market-tile-actions{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto}',
-        '.dsk-market-tile .dsk-market-tile-actions{min-height:28px}',
-        '.dsk-seg{display:inline-flex;align-items:center;gap:2px;flex:none;padding:2px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
-        '.dsk-seg>button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}',
-        '.dsk-seg>button:hover{color:var(--dsw-alias-label-primary)}',
-        '.dsk-seg>button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
-        '.dsk-seg>button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
         '.dsk-market-summary{color:var(--dsw-alias-label-secondary);font-size:12px}',
         '.dsk-market-warnings summary{cursor:pointer;color:var(--dsw-alias-label-secondary)}',
         '.dsk-market-warning{margin-top:4px;color:var(--dsw-alias-label-secondary);font-size:12px;word-break:break-word}',
@@ -745,8 +722,6 @@ window.__ModuleLoader__.load({
         // Modifiers sit after their base rule: same specificity, so the later
         // declaration is the one that applies. Putting them before
         // `.dsk-button`/`.dsk-link` silently does nothing.
-        '.dsk-button-small{height:28px;padding:0 10px;font-size:12px}',
-        '.dsk-link-icon{width:28px;height:30px;padding:0;justify-content:center}',
         '.dsk-roots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
         '.dsk-root-tab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}',
         '.dsk-root-tab:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}',
@@ -950,8 +925,6 @@ window.__ModuleLoader__.load({
         marketBusy: undefined,
         /* The index sources the market reads, for the manager dialog. */
         marketSources: undefined,
-        /* How the market paints its entries: an icon grid, or the row list. */
-        marketView: 'icons',
       }
       const listeners = new Set()
       const emit = () => {
@@ -1075,13 +1048,6 @@ window.__ModuleLoader__.load({
         },
         setMarketQuery(value) {
           set({ marketQuery: typeof value === 'string' ? value : '' })
-        },
-        /**
-         * Switch the market between the icon grid and the row list.
-         * @param view - `icons` or `list`; anything else keeps the grid.
-         */
-        setMarketView(view) {
-          set({ marketView: view === 'list' ? 'list' : 'icons' })
         },
         /**
          * Install one catalogue entry into the library.
@@ -1535,18 +1501,55 @@ window.__ModuleLoader__.load({
       }
 
       /**
-       * The mark each agent actually uses, at 24×24 (or an official 40×40 tile).
+       * The folder a directory root is drawn with, on the 24 grid.
        *
-       * Brand marks, not shapes drawn here: the DeepSeek whale, the OpenAI knot
-       * for Codex, Claude's asterisk, Pi's three-shape glyph from pi.dev,
-       * GitHub Copilot's helmet from the official Primer octicons, and the
-       * official tiles from codebuddy.ai and workbuddy.cn. Sources are named in
-       * the README.
+       * Drawn here rather than taken from a vendor: these roots are plain
+       * directories on disk, and the panel should say where a skill lives
+       * instead of borrowing a brand for it. It is an outline — stroked, not
+       * filled — because a solid folder collapses into a dark blob at thirteen
+       * to fifteen pixels, while a 2-unit stroke keeps the tab readable.
+       *
+       * The tab is what makes this read as a folder rather than a rounded box,
+       * so it is deliberately a full quarter of the width and sits above the
+       * front panel's top edge.
+       */
+      const FOLDER_BODY =
+        'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'
+
+      /**
+       * Two folders, one behind the other: `~/.agents`, or a repository's
+       * `.agents`, which holds more than one library's worth of skills.
+       */
+      const FOLDER_STACK =
+        'M20 17a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.9a2 2 0 0 1-1.69-.9l-.81-1.2a2 2 0 0 0-1.67-.9H8a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2Z'
+      const FOLDER_STACK_BACK = 'M2 8v11a2 2 0 0 0 2 2h14'
+
+      /**
+       * The mark each root is drawn with.
+       *
+       * Two kinds live here. A vendor's own mark says which agent's library a
+       * directory is — the OpenAI knot for Codex, Claude's asterisk, Pi's
+       * three-shape glyph from pi.dev, GitHub Copilot's helmet from the official
+       * Primer octicons, and the official tiles from codebuddy.ai and
+       * workbuddy.cn; sources are named in the README. DSH's own directories
+       * carry a drawn folder instead: they are plain paths on disk, and a
+       * vendor logo there claimed a brand the directory does not belong to.
+       *
        * Monochrome marks inherit `currentColor`, so they follow the theme; the
        * two tiles keep their own gradient, as their vendors draw them.
        */
       const AGENT_MARKS = {
-        dsh: { glyph: "M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45", viewBox: '0 0 24 24', color: '#5786FE' },
+        // DSH's own library is a directory on disk, so it is drawn as one: a
+        // folder. The DeepSeek whale used to sit here, which made this panel
+        // look like it was branding itself with someone else's logo rather than
+        // showing where the skills live.
+        dsh: { glyph: FOLDER_BODY, viewBox: '0 0 24 24', color: 'currentColor', stroke: 2 },
+        // `~/.agents` and a repository's `.agents`: several libraries in one
+        // place, so the folder carries a second folder inside it. Both shapes
+        // are one path with `fill-rule:evenodd`, which makes the inner folder a
+        // cut-out: the glyph therefore reads as an outline on any surface and
+        // needs no second colour.
+        agents: { glyph: `${FOLDER_STACK}${FOLDER_STACK_BACK}`, viewBox: '0 0 24 24', color: 'currentColor', stroke: 2 },
         // Pi's mark, from the vendored favicon at pi.dev: three rectilinear
         // shapes on a 560 grid, drawn as one path with three subpaths. It is
         // monochrome in the vendor's own asset, so it follows the theme token.
@@ -1581,6 +1584,7 @@ window.__ModuleLoader__.load({
             dangerouslySetInnerHTML: { __html: mark.svg },
           })
         }
+        const outline = typeof mark.stroke === 'number'
         return h(
           'svg',
           {
@@ -1591,8 +1595,32 @@ window.__ModuleLoader__.load({
             focusable: 'false',
             style: { flex: 'none', display: 'block', color: mark.color },
           },
-          h('path', { d: mark.glyph, fill: 'currentColor', fillRule: 'evenodd', clipRule: 'evenodd' }),
+          h('path', {
+            d: mark.glyph,
+            fill: outline ? 'none' : 'currentColor',
+            stroke: outline ? 'currentColor' : undefined,
+            strokeWidth: outline ? String(mark.stroke) : undefined,
+            strokeLinejoin: outline ? 'round' : undefined,
+            strokeLinecap: outline ? 'round' : undefined,
+            ...(outline ? {} : { fillRule: 'evenodd', clipRule: 'evenodd' }),
+          }),
         )
+      }
+
+      /**
+       * Which mark one root is drawn with.
+       *
+       * `~/.agents` and `<repo>/.agents` are the multi-agent directory, so they
+       * get the folder-with-a-folder mark rather than the plain one DSH's own
+       * library uses.
+       *
+       * @param root - one listed root.
+       * @returns the mark's key, or undefined when the root has no mark.
+       */
+      function rootMark(root) {
+        if (root?.agent === undefined) return undefined
+        if (root.source === 'user-agents' || root.source === 'project-agents') return 'agents'
+        return root.agent
       }
 
       /** The folder each project-scope library is named after, keyed by source. */
@@ -2205,7 +2233,7 @@ window.__ModuleLoader__.load({
               h(
                 'span',
                 { className: 'dsk-card-name' },
-                root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 15 }) : null,
+                rootMark(root) !== undefined ? h(AgentIcon, { agent: rootMark(root), size: 15 }) : null,
                 rootLabel(root),
                 h('span', { className: 'dsk-root-count' }, root.skills.length),
                 root.kind === 'agent' ? h(Chip, { tone: 'muted' }, t('chip.auto')) : null,
@@ -2338,81 +2366,6 @@ window.__ModuleLoader__.load({
       }
 
       /**
-       * The letters a market tile shows, and the tint behind them.
-       *
-       * The catalogue carries no icon file, and downloading one per card would
-       * turn a browse into a hundred requests. So a tile is drawn from the name
-       * the entry already has: its first letters, on a tint derived from its
-       * id. The derivation is deterministic, so the same skill keeps the same
-       * tile across reloads and between the two views.
-       *
-       * @param entry - one catalogue entry.
-       * @returns the letters, and a hue in degrees.
-       */
-      function marketGlyph(entry) {
-        const words = String(entry.name ?? '')
-          .replace(/[_-]+/g, ' ')
-          .split(/\s+/)
-          .filter(Boolean)
-        const letters =
-          words.length === 0
-            ? '?'
-            : words.length === 1
-              ? words[0].slice(0, 2)
-              : `${words[0][0]}${words[1][0]}`
-        const key = String(entry.id ?? entry.name ?? '')
-        let hash = 0
-        for (let index = 0; index < key.length; index += 1) hash = (hash * 31 + key.charCodeAt(index)) % 360
-        return { letters, hue: hash }
-      }
-
-      /** One market entry as an icon tile. */
-      function MarketTile({ entry, state, disabled, onInstall }) {
-        const busy = state.marketBusy === entry.id
-        const glyph = marketGlyph(entry)
-        const href = entry.view || entry.source
-        return h(
-          'div',
-          { className: 'dsk-market-tile', 'data-dsk-market': entry.id, title: entry.description || entry.name },
-          h(
-            'span',
-            {
-              className: 'dsk-market-tile-glyph',
-              'aria-hidden': 'true',
-              title: entry.name,
-              style: { '--dsk-tile-hue': String(glyph.hue) },
-            },
-            glyph.letters,
-          ),
-          h('span', { className: 'dsk-market-tile-name' }, entry.name),
-          entry.author ? h('span', { className: 'dsk-market-tile-author' }, entry.author) : null,
-          h(
-            'div',
-            { className: 'dsk-market-tile-actions' },
-            href
-              ? h(
-                  'a',
-                  {
-                    className: 'dsk-link dsk-link-icon',
-                    href,
-                    target: '_blank',
-                    rel: 'noreferrer noopener',
-                    title: t('market.openSource'),
-                    'aria-label': t('market.openSource'),
-                  },
-                  h(GithubGlyph, { size: 13 }),
-                )
-              : null,
-            h(
-              Action,
-              { variant: 'primary', className: 'dsk-button-small', onClick: () => onInstall(entry), disabled },
-              busy ? t('market.installing') : t('market.install'),
-            ),
-          ),
-        )
-      }
-
-      /**
        * The market: a curated catalogue read from the package, one-click install.
        *
        * It shares the install path with a pasted link, so the only thing this
@@ -2471,30 +2424,6 @@ window.__ModuleLoader__.load({
               { variant: 'quiet', onClick: () => store.openMarketSources(), 'data-dsk-market-sources': 'true' },
               t('action.marketSources'),
             ),
-            h(
-              'div',
-              { className: 'dsk-seg', role: 'group', 'aria-label': t('market.viewLabel') },
-              h(
-                'button',
-                {
-                  type: 'button',
-                  'aria-pressed': state.marketView !== 'list',
-                  'data-dsk-market-view': 'icons',
-                  onClick: () => store.setMarketView('icons'),
-                },
-                t('market.viewIcons'),
-              ),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  'aria-pressed': state.marketView === 'list',
-                  'data-dsk-market-view': 'list',
-                  onClick: () => store.setMarketView('list'),
-                },
-                t('market.viewList'),
-              ),
-            ),
             h(Action, { variant: 'quiet', onClick: () => store.loadMarket(true), disabled: state.marketBusy !== undefined }, t('action.reload')),
           ),
           market.warning ? h('div', { className: 'dsk-note' }, market.warning) : null,
@@ -2512,21 +2441,13 @@ window.__ModuleLoader__.load({
             ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, market.entries.length === 0 ? t('market.empty') : t('market.noMatch')))
             : h(
                 'div',
-                { className: 'dsk-market-scroll', 'data-dsk-market-view': state.marketView === 'list' ? 'list' : 'icons' },
+                { className: 'dsk-market-scroll', 'data-dsk-market-view': 'list' },
                 h(
                   'div',
-                  {
-                    className: state.marketView === 'list' ? 'dsk-market-cards' : 'dsk-market-grid',
-                    'data-dsk-market-grid': state.marketView === 'list' ? undefined : 'true',
-                    'data-dsk-market-cards': state.marketView === 'list' ? 'true' : undefined,
-                  },
+                  { className: 'dsk-market-cards', 'data-dsk-market-cards': String(entries.length) },
                   entries.map((entry) => {
                     const busy = state.marketBusy === entry.id
                     const disabled = state.marketBusy !== undefined || manageRoots.length === 0
-                    const install = (target) => store.installMarket(target, defaultRoot)
-                    if (state.marketView !== 'list') {
-                      return h(MarketTile, { key: entry.id, entry, state, disabled, onInstall: install })
-                    }
                     const tags = Array.isArray(entry.tags) ? entry.tags : []
                     const shown = tags.slice(0, 4)
                     const local = isInstalled(entry)
@@ -2741,7 +2662,7 @@ window.__ModuleLoader__.load({
                           'aria-pressed': state.rootFilter === root.key,
                           onClick: () => store.setRootFilter(root.key),
                         },
-                        root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 13 }) : null,
+                        rootMark(root) !== undefined ? h(AgentIcon, { agent: rootMark(root), size: 13 }) : null,
                         rootLabel(root),
                         h('span', { className: 'dsk-root-count' }, String(root.skills?.length ?? 0)),
                       ),

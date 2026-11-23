@@ -32,7 +32,7 @@ for turning one off without editing files. This plugin adds that surface.
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
 | **Known libraries** | Codex, Claude Code, Pi, GitHub Copilot, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
 | **Claude Code, Pi and Copilot skills** | Claude Code's user library (`~/.claude/skills`), Pi's (`~/.pi/agent/skills`) and GitHub Copilot's (`~/.copilot/skills`), plus each repository's own `.claude/skills`, `.pi/skills` and `.github/skills`, are listed, switched, installed into and loaded by DSH. |
-| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and published indexes, and installs a skill with one click. It opens as an **icon grid** with a one-click switch to the detail list, and its toolbar manages **custom index sources**, so any GitHub repository or JSON index can feed the same tiles; each tile's **View source** opens that skill's own folder. Browsing is offline-first; installing reuses the same remote path as a pasted link. |
+| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and published indexes, and installs a skill with one click. Its list is a two-column card grid, and its toolbar manages **custom index sources**, so any GitHub repository or JSON index can feed the same cards; each card's **View source** opens that skill's own folder. Browsing is offline-first; installing reuses the same remote path as a pasted link. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -176,15 +176,21 @@ also holds the package cache and the shared session store. A `~/.pi` without an
 `agent/` subdirectory is therefore not evidence that Pi is installed, and the
 row does not appear.
 
-The marks are the vendors' own, taken from published brand assets rather than
-drawn here: the DeepSeek whale (`deepseek.svg` from simple-icons), the OpenAI
-knot and the Claude asterisk (`openai.svg`, `claude.svg` from
-`@lobehub/icons-static-svg`), Pi's three-shape glyph (`favicon.svg` from
-pi.dev), GitHub Copilot's helmet (`copilot-24.svg` from the official Primer
-octicons), and the official `logo.svg` tiles served by codebuddy.ai and
-workbuddy.cn. The monochrome ones inherit `currentColor` so they follow the
-theme; the two tiles keep their own gradients. Brand marks belong to their
-owners and identify the directory the skills came from.
+A row that belongs to a named agent carries that vendor's own mark, taken from
+published brand assets rather than drawn here: the OpenAI knot and the Claude
+asterisk (`openai.svg`, `claude.svg` from `@lobehub/icons-static-svg`), Pi's
+three-shape glyph (`favicon.svg` from pi.dev), GitHub Copilot's helmet
+(`copilot-24.svg` from the official Primer octicons), and the official
+`logo.svg` tiles served by codebuddy.ai and workbuddy.cn. The monochrome ones
+inherit `currentColor` so they follow the theme; the two tiles keep their own
+gradients. Brand marks belong to their owners and identify the directory the
+skills came from.
+
+DSH's **own** directories are different: `~/.dsh/skills`, `<repo>/.dsh/skills`
+and `~/.agents/skills` are paths on this machine, not another product, so they
+carry a drawn folder outline instead of a brand. `~/.agents` and
+`<repo>/.agents` get a stacked folder, because that directory serves more than
+one agent.
 
 ### Claude Code, Pi and Copilot, in both scopes
 
@@ -265,19 +271,10 @@ widen where the panel will fetch from. Installing an entry is an ordinary
 so the same size limits, conflicts and "choose a skill" step apply as for a
 pasted link.
 
-#### Icon grid or list
+#### List layout
 
-The market opens as an **icon grid**: every skill is a 132 px tile carrying its
-initials (the first letters of two words, or the first two letters of one,
-tinted by a hue derived from its id), its name, its author, and the **View
-source** and **Install** buttons. No icon file is downloaded — a two-hundred
-entry catalogue would become two hundred requests — and the tile is computed
-from the entry itself, so it stays the same across reloads and is identical in
-both views. Search, index sources, reload and the view switch all sit in the
-toolbar above it.
-
-Switch to **List** to read the descriptions: the same entries become two-column
-cards (one column when the panel is narrow), each laid out as
+The market has one layout: two-column cards (one column when the panel is
+narrow), each laid out as
 
 ```
 name  [index]                          author
@@ -290,8 +287,8 @@ The green **Installed** tag comes from a real scan of the local libraries — an
 entry matches when its `name` or the last segment of its `path` is already on
 disk — and the install button stays enabled, because installing into another
 root is a real thing to want. At most four tags are shown, with a `+N`
-remainder, so a talkative index cannot push the actions off the card. Both
-views share one install path and one source link.
+remainder, so a talkative index cannot push the actions off the card. Search,
+index sources and reload all sit in the toolbar above it.
 
 #### Custom index sources
 
@@ -388,7 +385,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all nine sources, then 152 tests over a real temporary
+Runs `node --check` on all nine sources, then 153 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including

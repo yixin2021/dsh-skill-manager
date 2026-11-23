@@ -32,7 +32,7 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
 | **自动识别** | Codex、Claude Code、Pi、GitHub Copilot、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
 | **Claude Code、Pi 与 Copilot 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`）、GitHub Copilot 的（`~/.copilot/skills`），以及每个仓库自己的 `.claude/skills`、`.pi/skills` 和 `.github/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
-| **技能市场** | 第二个页签浏览随包附带的精选目录（`docs/skills.json`）和公开索引，一键装进本地技能库。默认是**图标网格**，可一键切回详情列表；工具栏里的**索引源**可以管理自定义索引——任意 GitHub 仓库或 JSON 索引都能喂给同一批卡片；每张卡片的**查看来源**指向该技能自己的目录。浏览优先离线；安装复用与粘贴链接相同的远程导入路径。 |
+| **技能市场** | 第二个页签浏览随包附带的精选目录（`docs/skills.json`）和公开索引，一键装进本地技能库。列表是双列卡片；工具栏里的**索引源**可以管理自定义索引——任意 GitHub 仓库或 JSON 索引都能喂给同一批卡片；每张卡片的**查看来源**指向该技能自己的目录。浏览优先离线；安装复用与粘贴链接相同的远程导入路径。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -149,12 +149,17 @@ Pi 是唯一一个技能库不在 home 正下方的 agent：它的 agent 目录�
 （由 `PI_CODING_AGENT_DIR` 移动），因为 `~/.pi` 里还放着包管理器的缓存和共享的会话
 目录。所以只有 `~/.pi`、没有 `agent/` 子目录时，不认为 Pi 已安装，也不会多出一行。
 
-图标用的是各家公开的品牌素材，不是自己画的：DeepSeek 鲸鱼（simple-icons 的
-`deepseek.svg`）、OpenAI 绳结与 Claude 米字（`@lobehub/icons-static-svg` 的
-`openai.svg`、`claude.svg`）、Pi 的三块字形（pi.dev 的 `favicon.svg`）、
-GitHub Copilot 的头盔（官方 Primer octicons 的 `copilot-24.svg`）、以及
-codebuddy.ai 和 workbuddy.cn 站点上的官方 `logo.svg`。单色标用 `currentColor`，
-跟随主题；两个圆标保留各自的渐变。商标归各自所有，这里只用来标识技能来自哪个 agent。
+属于某个具名 agent 的行，图标用那家公开的品牌素材，不是自己画的：OpenAI 绳结与
+Claude 米字（`@lobehub/icons-static-svg` 的 `openai.svg`、`claude.svg`）、
+Pi 的三块字形（pi.dev 的 `favicon.svg`）、GitHub Copilot 的头盔（官方 Primer
+octicons 的 `copilot-24.svg`）、以及 codebuddy.ai 和 workbuddy.cn 站点上的官方
+`logo.svg`。单色标用 `currentColor`，跟随主题；两个圆标保留各自的渐变。商标归各自
+所有，这里只用来标识技能来自哪个 agent。
+
+DSH **自己的**目录不一样：`~/.dsh/skills`、`<repo>/.dsh/skills` 和
+`~/.agents/skills` 只是这台机器上的路径，不属于某个产品，所以画的是一个文件夹轮廓，
+不用品牌标。`~/.agents` 和 `<repo>/.agents` 用的是叠起来的双文件夹，因为那个目录
+服务的不止一个 agent。
 
 ### Claude Code、Pi 与 Copilot，两种作用域
 
@@ -211,11 +216,9 @@ Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`�
 
 每条读入时都会校验：写坏的行会被丢弃；`source` 的主机若不在安装器已支持的范围内（`github.com`、`gitlab.com`、`gitee.com`、`gitcode.com`、`atomgit.com`）会被拒绝——市场不会扩大面板的抓取范围。安装一条就是把它的 `source` 作为普通的 `install-from-remote` 请求装进当前查看的技能库，因此大小上限、冲突拒绝和“选择技能”这一步都和粘贴链接完全一致。
 
-#### 图标网格 / 列表
+#### 列表布局
 
-市场默认按**图标网格**展示：每个技能是一块 132px 见方的方块瓷砖，里面是名称首字母（两个字取首字母、一个词取前两位，颜色由 id 派生出稳定的色相）、名称、作者，以及「查看来源」和「安装」两个按钮。之所以不下载图标文件：一份两百条的目录会变成两百个请求，而首字母瓷砖完全由目录本身算出来，刷新后仍是同一块、两种视图之间也不会变。搜索、索引源、重新读取、视图切换都在顶部工具栏里。
-
-想读描述时切到**列表**：同一批条目变成双列卡片（面板窄时自动落成单列），每张卡片是
+市场只有一种布局：双列卡片（面板窄时自动落成单列），每张卡片是
 
 ```
 名称  [索引]                             作者
@@ -224,7 +227,7 @@ Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`�
 [查看来源]                                        [安装]
 ```
 
-「已安装」是绿色标签，来自本地技能库的实际扫描（条目的 `name` 或 `path` 末段命中已装技能），安装按钮仍然可用——装到另一个根目录是正常需求。标签最多显示四个，多出的折成 `+N`，这样一份话多的索引不会把操作按钮挤出卡片。两个视图共用同一个安装与来源链接逻辑。
+「已安装」是绿色标签，来自本地技能库的实际扫描（条目的 `name` 或 `path` 末段命中已装技能），安装按钮仍然可用——装到另一个根目录是正常需求。标签最多显示四个，多出的折成 `+N`，这样一份话多的索引不会把操作按钮挤出卡片。搜索、索引源、重新读取都在顶部工具栏里。
 
 #### 自定义索引源
 
@@ -288,7 +291,7 @@ profile 不会丢，Web 端和桌面端也共用同一份。文件损坏时按�
 npm test
 ```
 
-先对九个源文件跑 `node --check`，再在真实临时目录和测试自建的样例上跑 152 项测试：
+先对九个源文件跑 `node --check`，再在真实临时目录和测试自建的样例上跑 153 项测试：
 frontmatter 解析（引号标量、注释、块标量、非法布尔写法）、路径包含、根目录发现、
 仅扫描直接子项、以及包括各种拒绝分支在内的全部变更操作——再加上远程导入这条链路：
 链接解析、传输协议白名单、tar 读取，以及克隆。
