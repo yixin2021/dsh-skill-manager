@@ -600,7 +600,11 @@ window.__ModuleLoader__.load({
         '.dsk-tab:hover{color:var(--dsw-alias-label-primary)}',
         '.dsk-tab[aria-selected="true"]{color:var(--dsw-alias-label-primary);border-bottom-color:var(--dsw-alias-brand-primary)}',
         '.dsk-tab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-radius:6px}',
-        '.dsk-market{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;flex:1 1 auto}',
+        '.dsk-market{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0;overflow:hidden}',
+        '.dsk-market-scroll{display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-label-secondary) transparent;padding:2px 6px 32px 0}',
+        '.dsk-market-scroll::-webkit-scrollbar{width:8px}',
+        '.dsk-market-scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb, var(--dsw-alias-label-secondary) 45%, transparent);border-radius:4px}',
+        '.dsk-market-scroll::-webkit-scrollbar-track{background:transparent}',
         '.dsk-market-toolbar{flex-wrap:nowrap}',
         '.dsk-market-search{flex:1 1 320px;max-width:460px;min-width:0}',
         '.dsk-market-list{display:flex;flex-direction:column;gap:10px}',
@@ -2041,8 +2045,11 @@ window.__ModuleLoader__.load({
             ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, market.entries.length === 0 ? t('market.empty') : t('market.noMatch')))
             : h(
                 'div',
-                { className: 'dsk-market-list' },
-                entries.map((entry) => {
+                { className: 'dsk-market-scroll' },
+                h(
+                  'div',
+                  { className: 'dsk-market-list' },
+                  entries.map((entry) => {
                   const busy = state.marketBusy === entry.id
                   const disabled = state.marketBusy !== undefined || manageRoots.length === 0
                   return h(
@@ -2064,10 +2071,10 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dsk-market-actions' },
-                      entry.source
+                      entry.view || entry.source
                         ? h(
                             'a',
-                            { className: 'dsk-link', href: entry.source, target: '_blank', rel: 'noreferrer noopener', title: t('market.openSource') },
+                            { className: 'dsk-link', href: entry.view || entry.source, target: '_blank', rel: 'noreferrer noopener', title: t('market.openSource') },
                             h(GithubGlyph, { size: 13 }),
                             h('span', null, t('market.openSource')),
                           )
@@ -2080,6 +2087,7 @@ window.__ModuleLoader__.load({
                     ),
                   )
                 }),
+                ),
               ),
         )
       }

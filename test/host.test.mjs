@@ -422,3 +422,24 @@ test('the market index is fetched over the API, not raw.githubusercontent', asyn
     assert.equal(typeof source.path, 'string', 'a source names a path inside it')
   }
 })
+
+test('every expanded index entry carries a per-skill view link', async () => {
+  // "View source" must open the skill's own folder, not the repository root that
+  // install reads from — otherwise every row on a multi-skill repo links the same.
+  const { expandIndex } = await import('../lib/market.js')
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      tree: [
+        { type: 'blob', path: 'skills/alpha/SKILL.md' },
+        { type: 'blob', path: 'skills/beta/SKILL.md' },
+      ],
+    }),
+  })
+  const result = await expandIndex({ repositories: ['https://github.com/o/r'] }, { fetchImpl })
+  for (const entry of result.entries) {
+    assert.equal(entry.source, 'https://github.com/o/r')
+    assert.match(entry.view, /^https:\/\/github\.com\/o\/r\/tree\/HEAD\/skills\/(alpha|beta)$/)
+  }
+  assert.notEqual(result.entries[0].view, result.entries[1].view, 'two skills in one repo link to different folders')
+})

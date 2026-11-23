@@ -1101,3 +1101,19 @@ test('the panel has a market tab that installs a catalogue entry', async () => {
   await app.settle()
   assert.deepEqual(calls[0], { action: 'install-from-remote', rootKey: 'user-dsh', url: 'https://github.com/yixin2021/dsh-skill-manager' })
 })
+
+test('the market list scrolls in its own region, not the page', () => {
+  // The page clips and the market cards must scroll under the search box. Without
+  // a bounded scrolling child the list just grows and the page hides the rest.
+  const css = stylesheetOf(loadClient())
+  const market = /\.dsk-market\{([^}]*)\}/.exec(css)
+  assert.ok(market, '.dsk-market is styled')
+  assert.match(market[1], /min-height:0/, 'the market can shrink below its content')
+  assert.doesNotMatch(market[1], /overflow-y:auto/, 'the market itself is not the scroller')
+
+  const scroll = /\.dsk-market-scroll\{([^}]*)\}/.exec(css)
+  assert.ok(scroll, '.dsk-market-scroll is the scroller')
+  assert.match(scroll[1], /overflow-y:auto/)
+  assert.match(scroll[1], /min-height:0/)
+  assert.match(scroll[1], /flex:1 1 auto/)
+})
