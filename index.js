@@ -22,7 +22,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { parseRemoteUrl, readRemoteTree } from './lib/remote-source.js'
-import { parseCatalogue } from './lib/market.js'
+import { expandIndex, parseCatalogue } from './lib/market.js'
 import { MAX_CANDIDATES, collectSkillFilesDetailed, findSkillCandidates } from './lib/skill-tree.js'
 import {
   DISABLED_DIR,
@@ -583,18 +583,115 @@ function marketFile() {
  *
  * @returns the validated entries, or an explanatory failure.
  */
-async function readMarket() {
+/**
+ * The published indexes the market reads in addition to the bundled catalogue.
+ *
+ * Each one points at GitHub repositories; the market expands them into the
+ * skills those repositories hold. Keeping the list here (rather than in the
+ * page) means a person cannot make the Host fetch an arbitrary URL, and it is
+ * the one place to edit when a source moves.
+ */
+const MARKET_INDEX_SOURCES = [
+  'https://raw.githubusercontent.com/anthropics/skills/main/.dsh-market.json',
+  'https://raw.githubusercontent.com/yixin2021/dsh-skill-manager/main/docs/market-index.json',
+]
+
+/** How long a fetched index is reused before it is read again. */
+const MARKET_INDEX_TTL_MS = 10 * 60 * 1000
+
+/** The most entries the market will return, so a runaway index cannot flood the page. */
+const MARKET_MAX_ENTRIES = 500
+
+/** @type {Map<string, { at: number, entries: unknown[], warnings: string[] }>} */
+const marketIndexCache = new Map()
+
+/**
+ * Read one remote index URL and expand its repositories.
+ * @param url - the index URL.
+ * @returns the entries and warnings, or a warning when the read failed.
+ */
+async function readIndexSource(url) {
+  const cached = marketIndexCache.get(url)
+  if (cached !== undefined && Date.now() - cached.at < MARKET_INDEX_TTL_MS) {
+    return cached
+  }
+  const result = { at: Date.now(), entries: [], warnings: [] }
+  try {
+    const controller = typeof AbortController === 'function' ? new AbortController() : undefined
+    const timer = controller === undefined ? undefined : setTimeout(() => controller.abort(), 8_000)
+    let raw
+    try {
+      const response = await fetch(url, { headers: { accept: 'application/json', 'user-agent': 'dsh-skill-manager' }, signal: controller?.signal })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      raw = await response.json()
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+    }
+    const expanded = await expandIndex(raw, { seen: new Set() })
+    result.entries = expanded.entries
+    result.warnings = expanded.warnings
+  } catch (error) {
+    result.warnings = [`Could not read the market index ${url}: ${error instanceof Error ? error.message : String(error)}`]
+  }
+  marketIndexCache.set(url, result)
+  return result
+}
+
+/**
+ * Read the bundled catalogue and every published index, and merge them.
+ *
+ * The bundled file is authoritative and offline; the indexes add breadth and
+ * are best-effort — a source that is down contributes a warning, never an
+ * error, so the market stays usable without a network. Entries are de-duplicated
+ * by their install target (source + path) so the same skill listed twice shows
+ * once.
+ *
+ * @param options - `includeIndexes` defaults true; tests pass false for an
+ *   offline-only read.
+ * @returns the merged entries plus any warnings.
+ */
+async function readMarket(options = {}) {
+  const warnings = []
+  const entries = []
+  const seen = new Set()
+
   let text
   try {
     text = await readFile(marketFile(), 'utf8')
   } catch {
-    return { ok: true, entries: [], warning: 'The marketplace catalogue is missing from this package.' }
+    warnings.push('The bundled marketplace catalogue is missing from this package.')
+    text = undefined
   }
-  const parsed = parseCatalogue(text)
-  if (parsed.error !== undefined) {
-    return { ok: true, entries: [], warning: parsed.error }
+  let skipped = 0
+  if (text !== undefined) {
+    const parsed = parseCatalogue(text)
+    if (parsed.error !== undefined) warnings.push(parsed.error)
+    else {
+      skipped = parsed.skipped
+      for (const entry of parsed.entries) {
+        const key = `${entry.source}#${entry.path || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        entries.push({ ...entry, origin: 'bundled' })
+      }
+    }
   }
-  return { ok: true, entries: parsed.entries, skipped: parsed.skipped }
+
+  if (options.includeIndexes !== false) {
+    const results = await Promise.all(MARKET_INDEX_SOURCES.map((url) => readIndexSource(url)))
+    for (const result of results) {
+      for (const warning of result.warnings) warnings.push(warning)
+      for (const entry of result.entries) {
+        const key = `${entry.source}#${entry.path || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        entries.push({ ...entry, origin: 'index' })
+        if (entries.length >= MARKET_MAX_ENTRIES) break
+      }
+    }
+  }
+
+  return { ok: true, entries: entries.slice(0, MARKET_MAX_ENTRIES), skipped, warnings }
 }
 
 /**
@@ -1242,6 +1339,7 @@ export const internals = {
   createCustomProvider,
   agentHomeFrom,
   readMarket,
+  MARKET_INDEX_SOURCES,
   marketFile,
   agentLibraryCandidates,
   discoverAgentLibraries,

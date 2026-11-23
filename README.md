@@ -218,8 +218,21 @@ stay at `.github/skills` and `~/.copilot/skills` rather than duplicating them.
 The page has two tabs. **My skills** is everything on disk; **Market** is a
 short, curated list a person can install with one click.
 
-The catalogue is `docs/skills.json`, shipped inside the package, so the market
-needs no backend and reads nothing over the network just to browse:
+The market merges two things:
+
+1. **The bundled catalogue** `docs/skills.json`, shipped inside the package.
+   Offline, always present.
+2. **Published index sources** — a fixed list in the Host (`MARKET_INDEX_SOURCES`).
+   Each is a JSON document listing GitHub repositories; the Host reads each
+   repository's git tree once and turns every `SKILL.md` it finds into one
+   installable card. The default index ships as `docs/market-index.json` and
+   covers `anthropics/skills`, `wshobson/agents` and `anthropics/claude-cookbooks`.
+
+A source that is down only adds a collapsible warning; the bundled file and the
+rest of the panel keep working offline. Fetched indexes are cached for ten
+minutes.
+
+The bundled file is:
 
 ```json
 {

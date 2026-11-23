@@ -364,3 +364,48 @@ test('the market reads the bundled catalogue and refuses a foreign source', asyn
     assert.match(entry.source, /^https:\/\/(github|gitlab|gitee|gitcode|atomgit)\.com\//)
   }
 })
+
+test('the market expands a repository index into one entry per skill', async () => {
+  // readMarket merges the bundled file with the published indexes. Tests run
+  // offline, so they drive the index expansion directly with a stubbed fetch:
+  // one repository tree becomes one card per SKILL.md, and a non-GitHub source
+  // is refused before it ever becomes a request.
+  const { expandIndex } = await import('../lib/market.js')
+  const calls = []
+  const fetchImpl = async (url) => {
+    calls.push(url)
+    assert.match(url, /api\.github\.com\/repos\/o\/r\/git\/trees\/HEAD/)
+    return {
+      ok: true,
+      json: async () => ({
+        tree: [
+          { type: 'blob', path: 'skills/alpha/SKILL.md' },
+          { type: 'blob', path: 'skills/beta/SKILL.md' },
+          { type: 'blob', path: 'skills/beta/README.md' },
+          { type: 'blob', path: 'SKILL.md' },
+        ],
+      }),
+    }
+  }
+  const result = await expandIndex(
+    { repositories: ['https://github.com/o/r', 'https://gitlab.com/x/y', 'not a url'] },
+    { fetchImpl, token: 't' },
+  )
+  assert.equal(calls.length, 1, 'only the GitHub repository is fetched')
+  assert.deepEqual(result.entries.map((entry) => entry.name).sort(), ['alpha', 'beta'])
+  for (const entry of result.entries) {
+    assert.equal(entry.source, 'https://github.com/o/r', 'the source stays the repository; the path pins the skill')
+    assert.match(entry.path, /^skills\/(alpha|beta)$/)
+  }
+  assert.equal(result.warnings.length, 2, 'the two non-GitHub entries are reported, not silently dropped')
+})
+
+test('the market reads bundled skills without the network', async () => {
+  const { readMarket } = internals
+  const answer = await readMarket({ includeIndexes: false })
+  assert.equal(answer.ok, true)
+  assert.ok(answer.entries.some((entry) => entry.id === 'dsh-badge'), 'the bundled catalogue is present offline')
+  for (const entry of answer.entries) {
+    assert.equal(entry.origin, 'bundled')
+  }
+})

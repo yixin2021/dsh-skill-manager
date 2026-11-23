@@ -5,17 +5,9 @@
     {
       "id": "dsh-badge",
       "name": "DSH Badge",
-      "description": "Add the official \"powered by dsh\" badge to documents, pull requests and merge requests produced with DeepSeek Harness.",
+      "description": "给文档、Pull Request、Merge Request 加上官方 “powered by dsh” 徽章。离线内置条目，无需联网即可安装。",
       "author": "DeepSeek Harness",
       "tags": ["docs", "attribution"],
-      "source": "https://github.com/yixin2021/dsh-skill-manager"
-    },
-    {
-      "id": "office",
-      "name": "Office 文档",
-      "description": "创建与编辑 Word / PowerPoint / Excel / PDF：生成、读取、渲染与重算，一次加载即可用。",
-      "author": "DeepSeek Harness",
-      "tags": ["office", "docx", "pptx", "xlsx"],
       "source": "https://github.com/yixin2021/dsh-skill-manager"
     }
   ]

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "dsh-skill-manager recommended index",
+  "description": "GitHub repositories whose skills the market expands and offers. Each repository is read once (its git tree) and every SKILL.md inside becomes an installable card.",
+  "repositories": [
+    "https://github.com/anthropics/skills",
+    "https://github.com/wshobson/agents",
+    "https://github.com/anthropics/claude-cookbooks"
+  ]
+}
