@@ -1281,7 +1281,7 @@ test('the market opens as an icon grid, and switches to the row list', async () 
   assert.ok(grid, 'the market paints a grid by default')
   const tiles = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-market'])
   assert.equal(tiles.length, 2)
-  assert.equal(elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-card').length, 0, 'no full-width rows in the grid')
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item').length, 0, 'no full-width cards in the grid')
 
   // The tile shows a glyph, the name, and keeps both actions.
   const glyphs = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-tile-glyph')
@@ -1318,9 +1318,18 @@ test('the market opens as an icon grid, and switches to the row list', async () 
   // Switching to the list repaints the same entries as cards.
   await app.click('列表')
   assert.equal(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid']), undefined, 'the grid is gone')
-  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-card')
+  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item')
   assert.equal(cards.length, 2)
+  assert.ok(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-cards'] === 'true'), 'the cards sit in the two-column grid')
   assert.match(app.text(), /First\./, 'the description returns with the list view')
+  // Each card is a name line, a description, its tags and its actions.
+  const first = cards[0]
+  assert.ok(elementsOf(first).find((element) => element.props?.className === 'dsk-market-item-name'), 'the name line')
+  assert.ok(elementsOf(first).find((element) => element.props?.className === 'dsk-market-item-desc'), 'the description')
+  const foot = elementsOf(first).find((element) => element.props?.className === 'dsk-market-item-foot')
+  assert.ok(foot, 'the actions sit on their own line')
+  const footLabels = elementsOf(foot).map((element) => element.children?.[0]).filter((child) => typeof child === 'string')
+  assert.ok(footLabels.includes('查看来源'), 'the source link is at the bottom left')
 
   await app.click('图标')
   assert.ok(elementsOf(app.render()).find((element) => element.props?.['data-dsk-market-grid'] === 'true'), 'and the grid comes back')
@@ -1352,3 +1361,64 @@ test('the primary button keeps its own fill under the cursor', () => {
   assert.ok(css.indexOf('.dsk-button-small{') > css.indexOf('.dsk-button{'), '.dsk-button-small follows .dsk-button')
   assert.ok(css.indexOf('.dsk-link-icon{') > css.indexOf('.dsk-link{'), '.dsk-link-icon follows .dsk-link')
 })
+
+test('a market card says when the skill is already on disk', async () => {
+  // The card is the place a person decides, so it carries the one fact that
+  // decides for them: this skill is already installed here. The tag is green
+  // like the plugin market's activity tag, and the install button stays
+  // enabled because installing into another root is a real thing to want.
+  const roots = [
+    { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [
+      { entryName: 'docx', name: 'docx', description: 'x', path: '/home/u/.dsh/skills/docx', disabled: false },
+    ], trash: [] },
+  ]
+  const entries = [
+    { id: 'docx', name: 'docx', description: 'Word docs.', author: 'anthropic', tags: ['office', 'files', 'docs', 'word', 'extra'], source: 'https://github.com/anthropics/skills', path: 'skills/docx', view: 'https://github.com/anthropics/skills/tree/HEAD/skills/docx', origin: 'index' },
+    { id: 'pdf', name: 'pdf', description: 'PDF forms.', author: 'anthropic', tags: [], source: 'https://github.com/anthropics/skills', path: 'skills/pdf', view: 'https://github.com/anthropics/skills/tree/HEAD/skills/pdf', origin: 'index' },
+  ]
+  const app = mountClient({ roots })
+  await app.settle()
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'market') return { status: 200, json: async () => ({ ok: true, entries, sources: [], warnings: [], skipped: 0 }) }
+    return { status: 200, json: async () => ({ ok: true, roots }) }
+  }
+  await app.click('技能市场')
+  await app.click('列表')
+
+  const cards = elementsOf(app.render()).filter((element) => element.props?.className === 'dsk-market-item')
+  const installedTag = (card) => elementsOf(card).find((element) => String(element.props?.className ?? '').includes('dsk-tag-active'))
+  assert.ok(installedTag(cards[0]), 'the installed skill is tagged')
+  assert.equal(columnsOf(installedTag(cards[0])).join(''), '已安装')
+  assert.equal(installedTag(cards[1]), undefined, 'a skill that is not installed carries no tag')
+
+  // Tags are capped, with a remainder count, so one talkative index cannot push
+  // the actions off the card.
+  const tags = elementsOf(cards[0]).filter((element) => element.props?.className === 'dsk-tag')
+  assert.equal(tags.length, 4, 'at most four tags are shown')
+  assert.equal(columnsOf(elementsOf(cards[0]).find((element) => element.props?.className === 'dsk-tag dsk-tag-more')).join(''), '+1')
+
+  // The empty-description case still fills the card's description slot.
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'market') {
+      return { status: 200, json: async () => ({ ok: true, entries: [{ ...entries[1], description: '' }], sources: [], warnings: [], skipped: 0 }) }
+    }
+    return { status: 200, json: async () => ({ ok: true, roots }) }
+  }
+  // The market's own reload, not the library toolbar's: both say 刷新.
+  const toolbar = elementsOf(app.render()).find((element) => String(element.props?.className ?? '').includes('dsk-market-toolbar'))
+  const reload = elementsOf(toolbar).find((element) => element.type === 'button' && columnsOf(element).join('') === '刷新')
+  assert.ok(reload, 'the market toolbar carries a reload button')
+  reload.props.onClick()
+  await app.settle()
+  assert.match(app.text(), /索引里没有提供描述/)
+})
+
+/** The visible text of one element, for the assertions above. */
+function columnsOf(node) {
+  if (node === null || node === undefined || node === false) return []
+  if (typeof node === 'string' || typeof node === 'number') return [String(node)]
+  if (Array.isArray(node)) return node.flatMap(columnsOf)
+  return (node.children ?? []).flatMap(columnsOf)
+}

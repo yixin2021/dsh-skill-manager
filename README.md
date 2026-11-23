@@ -276,9 +276,22 @@ from the entry itself, so it stays the same across reloads and is identical in
 both views. Search, index sources, reload and the view switch all sit in the
 toolbar above it.
 
-Switch to **List** to read the descriptions: the same entries become full-width
-cards with description, tags and origin chip. Both views share one install path
-and one source link.
+Switch to **List** to read the descriptions: the same entries become two-column
+cards (one column when the panel is narrow), each laid out as
+
+```
+name  [index]                          author
+description (two lines, ellipsised, full text on hover)
+[installed] [tag] [tag] [tag] +2
+[View source]                                [Install]
+```
+
+The green **Installed** tag comes from a real scan of the local libraries — an
+entry matches when its `name` or the last segment of its `path` is already on
+disk — and the install button stays enabled, because installing into another
+root is a real thing to want. At most four tags are shown, with a `+N`
+remainder, so a talkative index cannot push the actions off the card. Both
+views share one install path and one source link.
 
 #### Custom index sources
 
@@ -375,7 +388,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all nine sources, then 151 tests over a real temporary
+Runs `node --check` on all nine sources, then 152 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including
