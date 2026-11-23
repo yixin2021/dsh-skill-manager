@@ -1022,3 +1022,33 @@ test('a token is only sent when one was typed', async () => {
   // A refusal is shown inside the dialog, where the person is looking.
   assert.match(app.text(), /nothing there/)
 })
+
+test('the header links out to the repository and to a new issue', async () => {
+  // The two questions a person has about a panel they did not install
+  // themselves — "where does this come from" and "something is broken" — both
+  // have an answer on GitHub, so the header carries the links itself instead of
+  // hiding them in a README the page never shows.
+  const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+
+  const links = elementsOf(app.render()).filter((element) => element.type === 'a')
+  const byKind = (kind) => links.find((element) => element.props['data-dsk-link'] === kind)
+
+  const github = byKind('github')
+  assert.ok(github, 'the header carries a GitHub link')
+  assert.equal(github.props.href, 'https://github.com/yixin2021/dsh-skill-manager')
+  assert.equal(github.props.target, '_blank', 'the link opens away from the panel')
+  assert.match(github.props.rel, /noopener/, 'the new tab cannot reach back through window.opener')
+
+  const feedback = byKind('feedback')
+  assert.ok(feedback, 'the header carries a feedback link')
+  assert.equal(feedback.props.href, 'https://github.com/yixin2021/dsh-skill-manager/issues/new', 'feedback opens a new issue, not the issue list')
+  assert.equal(feedback.props.target, '_blank')
+
+  // The labels follow the active language, and the English page is not blank.
+  assert.match(app.text(), /问题反馈/)
+  const english = loadClient({ active: 'en-US' })
+  assert.match(english.text(), /Report an issue/)
+  assert.match(english.text(), /GitHub/)
+})

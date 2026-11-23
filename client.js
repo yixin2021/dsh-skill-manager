@@ -35,6 +35,10 @@ window.__ModuleLoader__.load({
     /** The one id that ties the navigation row to the panel it opens. */
     const PANEL_ID = 'dsh-skill-manager'
 
+    /** Where the plugin lives, and where a problem report goes. */
+    const REPO_URL = 'https://github.com/yixin2021/dsh-skill-manager'
+    const ISSUE_URL = `${REPO_URL}/issues/new`
+
     /** How many rows are painted before search must narrow the list. */
     const RENDER_LIMIT = 80
 
@@ -60,6 +64,10 @@ window.__ModuleLoader__.load({
       'action.reload': 'Reload',
       'action.reloading': 'Reloading…',
       'meta.refreshed': 'Last read {time}',
+      'action.github': 'GitHub',
+      'action.feedback': 'Report an issue',
+      'action.githubTitle': 'Open the dsh-skill-manager repository on GitHub',
+      'action.feedbackTitle': 'Open a new issue on GitHub with what went wrong',
       'action.reveal': 'Show in file manager',
       'action.revealShort': 'Show',
       'action.revealFolder': 'Open folder',
@@ -186,6 +194,10 @@ window.__ModuleLoader__.load({
       'action.reload': '刷新',
       'action.reloading': '刷新中…',
       'meta.refreshed': '最后读取 {time}',
+      'action.github': 'GitHub',
+      'action.feedback': '问题反馈',
+      'action.githubTitle': '在 GitHub 上打开 dsh-skill-manager 仓库',
+      'action.feedbackTitle': '在 GitHub 上新建一个 issue 反馈问题',
       'action.reveal': '在文件管理器中显示',
       'action.revealShort': '定位',
       'action.revealFolder': '打开目录',
@@ -462,7 +474,47 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /** A small status chip beside a skill name. */
+    /** The GitHub mark, drawn on the 16px grid the page uses. */
+    const GITHUB_PATH =
+      'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'
+
+    function GithubGlyph({ size = 14 }) {
+      return h(
+        'svg',
+        {
+          viewBox: '0 0 16 16',
+          width: size,
+          height: size,
+          fill: 'currentColor',
+          'aria-hidden': true,
+          focusable: 'false',
+          style: { display: 'block', flex: 'none' },
+        },
+        h('path', { d: GITHUB_PATH }),
+      )
+    }
+
+    /** A speech bubble with a bang: the report-an-issue row. */
+    const FEEDBACK_PATH =
+      'M2.5 1A1.5 1.5 0 0 0 1 2.5v8A1.5 1.5 0 0 0 2.5 12H4v2.6c0 .35.4.53.66.3L7.9 12h5.6A1.5 1.5 0 0 0 15 10.5v-8A1.5 1.5 0 0 0 13.5 1h-11Zm5.5 2.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm.75 3.5v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0Z'
+
+    function FeedbackGlyph({ size = 14 }) {
+      return h(
+        'svg',
+        {
+          viewBox: '0 0 16 16',
+          width: size,
+          height: size,
+          fill: 'currentColor',
+          'aria-hidden': true,
+          focusable: 'false',
+          style: { display: 'block', flex: 'none' },
+        },
+        h('path', { d: FEEDBACK_PATH, fillRule: 'evenodd', clipRule: 'evenodd' }),
+      )
+    }
+
+        /** A small status chip beside a skill name. */
     function Chip({ tone, children }) {
       return h('span', { className: cx('dsk-chip', tone ? `dsk-chip-${tone}` : false) }, children)
     }
@@ -499,6 +551,12 @@ window.__ModuleLoader__.load({
         // the list, not the page, owns the scrolling.
         '.dsk-page{box-sizing:border-box;display:flex;width:100%;min-width:0;max-width:1080px;margin:0 auto;flex-direction:column;gap:16px;padding:24px 28px 0;color:var(--dsw-alias-label-primary);font-family:inherit;font-size:13px;line-height:20px;height:100%;min-height:0;max-height:100vh;max-height:100dvh;overflow:hidden}',
         '.dsk-head{display:flex;flex-direction:column;gap:6px}',
+        '.dsk-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}',
+        '.dsk-head-text{display:flex;flex-direction:column;gap:6px;min-width:0}',
+        '.dsk-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}',
+        '.dsk-link{box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:500;text-decoration:none;cursor:pointer;white-space:nowrap}',
+        '.dsk-link:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}',
+        '.dsk-link:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
         '.dsk-title{margin:0;font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.2px}',
         '.dsk-subtitle{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
         '.dsk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -1811,8 +1869,49 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { className: 'dsk-head' },
-            h('h2', { className: 'dsk-title' }, t('title')),
-            h('p', { className: 'dsk-subtitle' }, fill(t('subtitle'), { total, roots: roots.length, enabled })),
+            h(
+              'div',
+              { className: 'dsk-head-row' },
+              h(
+                'div',
+                { className: 'dsk-head-text' },
+                h('h2', { className: 'dsk-title' }, t('title')),
+                h('p', { className: 'dsk-subtitle' }, fill(t('subtitle'), { total, roots: roots.length, enabled })),
+              ),
+              // Straight to the repository and straight to a new issue: the
+              // answer to "where is this from" and "something is broken" both
+              // live on GitHub, so the page carries the two links itself.
+              h(
+                'div',
+                { className: 'dsk-links' },
+                h(
+                  'a',
+                  {
+                    className: 'dsk-link',
+                    href: REPO_URL,
+                    target: '_blank',
+                    rel: 'noreferrer noopener',
+                    title: t('action.githubTitle'),
+                    'data-dsk-link': 'github',
+                  },
+                  h(GithubGlyph, { size: 14 }),
+                  h('span', null, t('action.github')),
+                ),
+                h(
+                  'a',
+                  {
+                    className: 'dsk-link',
+                    href: ISSUE_URL,
+                    target: '_blank',
+                    rel: 'noreferrer noopener',
+                    title: t('action.feedbackTitle'),
+                    'data-dsk-link': 'feedback',
+                  },
+                  h(FeedbackGlyph, { size: 14 }),
+                  h('span', null, t('action.feedback')),
+                ),
+              ),
+            ),
           ),
           h(
             'div',
