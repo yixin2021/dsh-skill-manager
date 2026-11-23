@@ -64,6 +64,21 @@ window.__ModuleLoader__.load({
       'action.reload': 'Reload',
       'action.reloading': 'Reloading…',
       'meta.refreshed': 'Last read {time}',
+      'tab.library': 'My skills',
+      'tab.market': 'Market',
+      'market.title': 'Skill market',
+      'market.subtitle': 'Curated skills you can install with one click.',
+      'market.loading': 'Reading the catalogue…',
+      'market.empty': 'The catalogue is empty right now.',
+      'market.unavailable': 'The market is unavailable: {reason}',
+      'market.install': 'Install',
+      'market.installing': 'Installing…',
+      'market.installed': 'Installed',
+      'market.installedCount': 'Installed {name}',
+      'market.openSource': 'View source',
+      'market.search': 'Search the market',
+      'market.noMatch': 'No skills match that search.',
+      'market.skipped': '{count} catalogue entries were skipped as invalid.',
       'action.github': 'GitHub',
       'action.feedback': 'Report an issue',
       'action.githubTitle': 'Open the dsh-skill-manager repository on GitHub',
@@ -194,6 +209,21 @@ window.__ModuleLoader__.load({
       'action.reload': '刷新',
       'action.reloading': '刷新中…',
       'meta.refreshed': '最后读取 {time}',
+      'tab.library': '我的技能',
+      'tab.market': '技能市场',
+      'market.title': '技能市场',
+      'market.subtitle': '精选技能，一键安装到本地技能库。',
+      'market.loading': '正在读取技能目录…',
+      'market.empty': '技能目录暂时是空的。',
+      'market.unavailable': '技能市场暂不可用：{reason}',
+      'market.install': '安装',
+      'market.installing': '安装中…',
+      'market.installed': '已安装',
+      'market.installedCount': '已安装 {name}',
+      'market.openSource': '查看来源',
+      'market.search': '搜索技能市场',
+      'market.noMatch': '没有匹配的技能。',
+      'market.skipped': '有 {count} 条目录条目无效，已跳过。',
       'action.github': 'GitHub',
       'action.feedback': '问题反馈',
       'action.githubTitle': '在 GitHub 上打开 dsh-skill-manager 仓库',
@@ -557,6 +587,20 @@ window.__ModuleLoader__.load({
         '.dsk-link{box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:500;text-decoration:none;cursor:pointer;white-space:nowrap}',
         '.dsk-link:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}',
         '.dsk-link:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+        '.dsk-tabs{display:flex;align-items:center;gap:6px;border-bottom:0.5px solid var(--dsw-alias-border-l2);padding-bottom:2px}',
+        '.dsk-tab{box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}',
+        '.dsk-tab:hover{color:var(--dsw-alias-label-primary)}',
+        '.dsk-tab[aria-selected="true"]{color:var(--dsw-alias-label-primary);border-bottom-color:var(--dsw-alias-brand-primary)}',
+        '.dsk-tab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-radius:6px}',
+        '.dsk-market{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;flex:1 1 auto}',
+        '.dsk-market-list{display:flex;flex-direction:column;gap:10px}',
+        '.dsk-market-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-market-main{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 auto}',
+        '.dsk-market-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+        '.dsk-market-desc{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
+        '.dsk-market-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
+        '.dsk-market-author{color:var(--dsw-alias-label-secondary);font-size:12px}',
+        '.dsk-market-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap}',
         '.dsk-title{margin:0;font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.2px}',
         '.dsk-subtitle{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
         '.dsk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -759,6 +803,14 @@ window.__ModuleLoader__.load({
         refreshing: false,
         /* When the roots were last read, so a reload shows that it happened. */
         refreshedAt: 0,
+        /* Which tab the page shows: the local library or the market. */
+        tab: 'library',
+        /* The market catalogue, read once when the tab is first opened. */
+        market: undefined,
+        /* The market's own search, kept separate from the library search. */
+        marketQuery: '',
+        /* The catalogue entry id currently installing, if any. */
+        marketBusy: undefined,
       }
       const listeners = new Set()
       const emit = () => {
@@ -818,6 +870,83 @@ window.__ModuleLoader__.load({
         /** @param key - a root key, or undefined for every root. */
         setRootFilter(key) {
           set({ rootFilter: key })
+        },
+        /** Switch between the local library and the market. */
+        setTab(tab) {
+          set({ tab })
+          if (tab === 'market' && state.market === undefined) store.loadMarket()
+        },
+        /** Read the bundled catalogue once; cache it in state. */
+        async loadMarket(force) {
+          if (state.market !== undefined && !force) return
+          set({ market: { status: 'loading', entries: [] } })
+          const answer = await callHost({ action: 'market' })
+          if (answer.ok === true) {
+            set({
+              market: {
+                status: 'ready',
+                entries: Array.isArray(answer.entries) ? answer.entries : [],
+                warning: typeof answer.warning === 'string' ? answer.warning : '',
+                skipped: Number(answer.skipped) || 0,
+              },
+            })
+          } else {
+            set({ market: { status: 'error', entries: [], reason: answer.message || t('error.generic') } })
+          }
+        },
+        setMarketQuery(value) {
+          set({ marketQuery: typeof value === 'string' ? value : '' })
+        },
+        /**
+         * Install one catalogue entry into the library.
+         *
+         * A catalogue entry is only a source link; installing it is an ordinary
+         * remote install, so the same limits, the same refusals, and the same
+         * "choose a skill" step apply as when a person pastes that link.
+         */
+        async installMarket(entry, rootKey) {
+          if (state.marketBusy !== undefined) return false
+          if (entry === undefined || typeof entry.source !== 'string') return false
+          const usable = (state.data?.roots ?? []).filter((root) => root.kind !== 'project' || root.exists)
+          const target = rootKey
+            ?? (usable.some((root) => root.key === state.rootFilter) ? state.rootFilter : usable[0]?.key)
+          if (target === undefined) {
+            set({ error: t('remote.noTarget') })
+            return false
+          }
+          set({ marketBusy: entry.id, error: '', notice: null })
+          const answer = await callHost({
+            action: 'install-from-remote',
+            rootKey: target,
+            url: entry.source,
+            ...(typeof entry.path === 'string' && entry.path.length > 0 ? { path: entry.path } : {}),
+          })
+          set({ marketBusy: undefined })
+          if (answer.ok === true) {
+            const name = answer.entryName || entry.name
+            set({ notice: { tone: 'success', text: fill(t('market.installedCount'), { name }) } })
+            await store.refresh({ quiet: true })
+            return true
+          }
+          if (answer.code === 'choose-skill') {
+            // Reuse the remote dialog so the person can pick which skill in the
+            // repository to install, instead of failing silently.
+            const candidates = Array.isArray(answer.candidates) ? answer.candidates : []
+            set({
+              dialog: {
+                kind: 'remote',
+                url: entry.source,
+                rootKey: target,
+                candidates,
+                total: answer.total ?? candidates.length,
+                truncated: answer.truncated === true,
+                selectedPaths: candidates.map((candidate) => candidate.path),
+              },
+            })
+            return false
+          }
+          set({ error: answer.message || t('error.generic') })
+          return false
         },
         /** @param dialog - the open dialog, or undefined. */
         setDialog(dialog) {
@@ -1838,6 +1967,95 @@ window.__ModuleLoader__.load({
         )
       }
 
+      /**
+       * The market: a curated catalogue read from the package, one-click install.
+       *
+       * It shares the install path with a pasted link, so the only thing this
+       * view adds is browsing. A catalogue read failure is shown as a calm note,
+       * not an error banner: the library tab still works without the market.
+       */
+      function MarketView({ state, roots, defaultRoot }) {
+        const market = state.market
+        const manageRoots = roots.filter((root) => root.kind !== 'project' || root.exists)
+        if (market === undefined || market.status === 'loading') {
+          return h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, t('market.loading')))
+        }
+        if (market.status === 'error') {
+          return h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, fill(t('market.unavailable'), { reason: market.reason }))
+        }
+        const query = state.marketQuery.trim().toLowerCase()
+        const entries = market.entries.filter((entry) => {
+          if (query.length === 0) return true
+          return `${entry.name} ${entry.description} ${entry.author} ${(entry.tags ?? []).join(' ')}`.toLowerCase().includes(query)
+        })
+        return h(
+          'div',
+          { className: 'dsk-market' },
+          h(
+            'div',
+            { className: 'dsk-toolbar' },
+            h(
+              'div',
+              { className: 'dsk-grow' },
+              h('input', {
+                className: 'dsk-search',
+                type: 'search',
+                value: state.marketQuery,
+                placeholder: t('market.search'),
+                'aria-label': t('market.search'),
+                onChange: (event) => store.setMarketQuery(event.target.value),
+              }),
+            ),
+            h(Action, { variant: 'quiet', onClick: () => store.loadMarket(true), disabled: state.marketBusy !== undefined }, t('action.reload')),
+          ),
+          market.warning ? h('div', { className: 'dsk-note' }, market.warning) : null,
+          market.skipped > 0 ? h('div', { className: 'dsk-note' }, fill(t('market.skipped'), { count: market.skipped })) : null,
+          entries.length === 0
+            ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, market.entries.length === 0 ? t('market.empty') : t('market.noMatch')))
+            : h(
+                'div',
+                { className: 'dsk-market-list' },
+                entries.map((entry) => {
+                  const busy = state.marketBusy === entry.id
+                  const disabled = state.marketBusy !== undefined || manageRoots.length === 0
+                  return h(
+                    'div',
+                    { key: entry.id, className: 'dsk-market-card', 'data-dsk-market': entry.id },
+                    h(
+                      'div',
+                      { className: 'dsk-market-main' },
+                      h('div', { className: 'dsk-market-name' }, entry.name),
+                      entry.description ? h('p', { className: 'dsk-market-desc' }, entry.description) : null,
+                      h(
+                        'div',
+                        { className: 'dsk-market-meta' },
+                        entry.author ? h('span', { className: 'dsk-market-author' }, entry.author) : null,
+                        ...(entry.tags ?? []).map((tag) => h(Chip, { key: tag, tone: undefined }, tag)),
+                      ),
+                    ),
+                    h(
+                      'div',
+                      { className: 'dsk-market-actions' },
+                      entry.source
+                        ? h(
+                            'a',
+                            { className: 'dsk-link', href: entry.source, target: '_blank', rel: 'noreferrer noopener', title: t('market.openSource') },
+                            h(GithubGlyph, { size: 13 }),
+                            h('span', null, t('market.openSource')),
+                          )
+                        : null,
+                      h(
+                        Action,
+                        { variant: 'primary', onClick: () => store.installMarket(entry, defaultRoot), disabled },
+                        busy ? t('market.installing') : t('market.install'),
+                      ),
+                    ),
+                  )
+                }),
+              ),
+        )
+      }
+
       /** The page. */
       function SkillsPage() {
         const state = useStore()
@@ -1913,6 +2131,38 @@ window.__ModuleLoader__.load({
               ),
             ),
           ),
+          // Two tabs: the library that is on disk, and the market that can add
+          // to it. The market is opt-in reading, so previewing it never touches
+          // the network.
+          h(
+            'div',
+            { className: 'dsk-tabs', role: 'tablist' },
+            h(
+              'button',
+              {
+                type: 'button',
+                role: 'tab',
+                className: 'dsk-tab',
+                'aria-selected': state.tab !== 'market',
+                'data-dsk-tab': 'library',
+                onClick: () => store.setTab('library'),
+              },
+              t('tab.library'),
+              h('span', { className: 'dsk-root-count' }, String(total)),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                role: 'tab',
+                className: 'dsk-tab',
+                'aria-selected': state.tab === 'market',
+                'data-dsk-tab': 'market',
+                onClick: () => store.setTab('market'),
+              },
+              t('tab.market'),
+            ),
+          ),
           h(
             'div',
             { className: 'dsk-toolbar' },
@@ -1952,51 +2202,55 @@ window.__ModuleLoader__.load({
                 : fill(t('meta.refreshed'), { time: formatClock(state.refreshedAt) }),
             ),
           ),
-          roots.length > 1
-            ? h(
-                'div',
-                { className: 'dsk-roots' },
-                h(
-                  'button',
-                  { type: 'button', className: 'dsk-root-tab', 'aria-pressed': state.rootFilter === undefined, onClick: () => store.setRootFilter(undefined) },
-                  t('filter.all'),
-                  h('span', { className: 'dsk-root-count' }, String(total)),
-                ),
-                roots.map((root) =>
-                  h(
-                    'button',
-                    {
-                      key: root.key,
-                      type: 'button',
-                      className: 'dsk-root-tab',
-                      'aria-pressed': state.rootFilter === root.key,
-                      onClick: () => store.setRootFilter(root.key),
-                    },
-                    root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 13 }) : null,
-                    rootLabel(root),
-                    h('span', { className: 'dsk-root-count' }, String(root.skills?.length ?? 0)),
-                  ),
-                ),
-              )
-            : null,
-          state.notice ? h('div', { className: cx('dsk-note', state.notice.tone === 'success' && 'dsk-note-success'), role: 'status' }, state.notice.text) : null,
-          state.error ? h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, state.error) : null,
-          warnings.length > 0 ? h('div', { className: 'dsk-note' }, warnings.map((warning) => String(warning?.message ?? '')).join(' · ')) : null,
-          h(
-            ScrollArea,
-            { revision: `${total}:${visibleRoots.length}` },
-            state.loading && state.data === undefined
-              ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, t('loading.page')))
-              : visibleRoots.length === 0
+          state.tab === 'market'
+            ? h(MarketView, { state, roots, defaultRoot })
+            : [
+              roots.length > 1
                 ? h(
                     'div',
-                    { className: 'dsk-empty' },
-                    h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, h(SkillsMark)),
-                    h('span', { className: 'dsk-empty-title' }, t('empty.title')),
-                    h('span', { className: 'dsk-empty-body' }, t('empty.body')),
+                    { className: 'dsk-roots' },
+                    h(
+                      'button',
+                      { type: 'button', className: 'dsk-root-tab', 'aria-pressed': state.rootFilter === undefined, onClick: () => store.setRootFilter(undefined) },
+                      t('filter.all'),
+                      h('span', { className: 'dsk-root-count' }, String(total)),
+                    ),
+                    roots.map((root) =>
+                      h(
+                        'button',
+                        {
+                          key: root.key,
+                          type: 'button',
+                          className: 'dsk-root-tab',
+                          'aria-pressed': state.rootFilter === root.key,
+                          onClick: () => store.setRootFilter(root.key),
+                        },
+                        root.agent !== undefined ? h(AgentIcon, { agent: root.agent, size: 13 }) : null,
+                        rootLabel(root),
+                        h('span', { className: 'dsk-root-count' }, String(root.skills?.length ?? 0)),
+                      ),
+                    ),
                   )
-                : visibleRoots.map((root) => h(RootCard, { key: root.key, root, query: state.query })),
-          ),
+                : null,
+              state.notice ? h('div', { className: cx('dsk-note', state.notice.tone === 'success' && 'dsk-note-success'), role: 'status' }, state.notice.text) : null,
+              state.error ? h('div', { className: 'dsk-note dsk-note-error', role: 'alert' }, state.error) : null,
+              warnings.length > 0 ? h('div', { className: 'dsk-note' }, warnings.map((warning) => String(warning?.message ?? '')).join(' · ')) : null,
+              h(
+                ScrollArea,
+                { revision: `${total}:${visibleRoots.length}` },
+                state.loading && state.data === undefined
+                  ? h('div', { className: 'dsk-empty' }, h('span', { className: 'dsk-empty-body' }, t('loading.page')))
+                  : visibleRoots.length === 0
+                    ? h(
+                        'div',
+                        { className: 'dsk-empty' },
+                        h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, h(SkillsMark)),
+                        h('span', { className: 'dsk-empty-title' }, t('empty.title')),
+                        h('span', { className: 'dsk-empty-body' }, t('empty.body')),
+                      )
+                    : visibleRoots.map((root) => h(RootCard, { key: root.key, root, query: state.query })),
+              ),
+              ],
           state.detail ? h(DetailDialog, { detail: state.detail }) : null,
           state.dialog?.kind === 'create' && manageable.length > 0 ? h(CreateDialog, { roots: manageable, defaultRootKey: defaultRoot }) : null,
           state.dialog?.kind === 'add-root' ? h(AddRootDialog, null) : null,

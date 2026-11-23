@@ -32,6 +32,7 @@ for turning one off without editing files. This plugin adds that surface.
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
 | **Known libraries** | Codex, Claude Code, Pi, GitHub Copilot, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
 | **Claude Code, Pi and Copilot skills** | Claude Code's user library (`~/.claude/skills`), Pi's (`~/.pi/agent/skills`) and GitHub Copilot's (`~/.copilot/skills`), plus each repository's own `.claude/skills`, `.pi/skills` and `.github/skills`, are listed, switched, installed into and loaded by DSH. |
+| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and installs a skill with one click. Browsing reads nothing over the network; installing reuses the same remote path as a pasted link. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -211,6 +212,38 @@ workspace can hold `.dsh/skills`, `.agents/skills`, `.claude/skills`,
 Copilot also reads `.claude/skills`, `.agents/skills` and `~/.agents/skills`.
 Those directories are already listed under their own rows, so Copilot's rows
 stay at `.github/skills` and `~/.copilot/skills` rather than duplicating them.
+
+### Skill market
+
+The page has two tabs. **My skills** is everything on disk; **Market** is a
+short, curated list a person can install with one click.
+
+The catalogue is `docs/skills.json`, shipped inside the package, so the market
+needs no backend and reads nothing over the network just to browse:
+
+```json
+{
+  "schema": 1,
+  "skills": [
+    {
+      "id": "dsh-badge",
+      "name": "DSH Badge",
+      "description": "Add the official \"powered by dsh\" badge …",
+      "author": "DeepSeek Harness",
+      "tags": ["docs", "attribution"],
+      "source": "https://github.com/yixin2021/dsh-skill-manager"
+    }
+  ]
+}
+```
+
+Every entry is validated on read. A malformed row is dropped, and a `source`
+whose host is not one the installer already reads (`github.com`, `gitlab.com`,
+`gitee.com`, `gitcode.com`, `atomgit.com`) is refused — the market can never
+widen where the panel will fetch from. Installing an entry is an ordinary
+`install-from-remote` request for its `source` into the library you are viewing,
+so the same size limits, conflicts and "choose a skill" step apply as for a
+pasted link.
 
 ### Added directories
 

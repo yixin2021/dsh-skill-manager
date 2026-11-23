@@ -19,8 +19,10 @@ import { execFile } from 'node:child_process'
 import { cp, mkdir, rename, rm, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { parseRemoteUrl, readRemoteTree } from './lib/remote-source.js'
+import { parseCatalogue } from './lib/market.js'
 import { MAX_CANDIDATES, collectSkillFilesDetailed, findSkillCandidates } from './lib/skill-tree.js'
 import {
   DISABLED_DIR,
@@ -557,6 +559,42 @@ function sourceLink(spec, ref, path) {
  */
 function entryNameKey(name) {
   return process.platform === 'darwin' || process.platform === 'win32' ? name.normalize('NFKC').toLocaleLowerCase('en-US') : name
+}
+
+/**
+ * Where the bundled catalogue lives.
+ *
+ * The list ships beside the code rather than in `node_modules` root so a
+ * checkout and an installed package resolve to the same file.
+ *
+ * @returns the absolute path of `docs/skills.json`.
+ */
+function marketFile() {
+  return join(dirname(fileURLToPath(import.meta.url)), 'docs', 'skills.json')
+}
+
+/**
+ * Read the bundled skill-market catalogue.
+ *
+ * The file ships inside this package, so this never touches the network. A
+ * missing or broken file answers an empty list with a warning instead of
+ * failing the page: the market tab is a convenience, and the rest of the panel
+ * must keep working without it.
+ *
+ * @returns the validated entries, or an explanatory failure.
+ */
+async function readMarket() {
+  let text
+  try {
+    text = await readFile(marketFile(), 'utf8')
+  } catch {
+    return { ok: true, entries: [], warning: 'The marketplace catalogue is missing from this package.' }
+  }
+  const parsed = parseCatalogue(text)
+  if (parsed.error !== undefined) {
+    return { ok: true, entries: [], warning: parsed.error }
+  }
+  return { ok: true, entries: parsed.entries, skipped: parsed.skipped }
 }
 
 /**
@@ -1108,6 +1146,8 @@ async function answerRequest(ctx, request) {
   switch (request.action) {
     case 'list':
       return listEverything(ctx)
+    case 'market':
+      return readMarket()
     case 'add-root':
       return addCustomRoot(ctx, request)
     case 'remove-root':
@@ -1201,6 +1241,8 @@ export const internals = {
   customRootsFile,
   createCustomProvider,
   agentHomeFrom,
+  readMarket,
+  marketFile,
   agentLibraryCandidates,
   discoverAgentLibraries,
   workspaceAgentRoots,

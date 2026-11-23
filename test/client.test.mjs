@@ -1052,3 +1052,52 @@ test('the header links out to the repository and to a new issue', async () => {
   assert.match(english.text(), /Report an issue/)
   assert.match(english.text(), /GitHub/)
 })
+
+test('the panel has a market tab that installs a catalogue entry', async () => {
+  // The market is a second tab over the same store: choosing it reads the
+  // bundled catalogue (one Host call) and each card installs through the same
+  // remote path a pasted link would take.
+  const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+
+  // The market tab is present and starts unselected.
+  const tabs = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-tab'])
+  assert.deepEqual(tabs.map((tab) => tab.props['data-dsk-tab']), ['library', 'market'])
+  assert.equal(tabs.find((tab) => tab.props['data-dsk-tab'] === 'market').props['aria-selected'], false)
+
+  // Opening the market reads the catalogue from the Host, not the network.
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    assert.equal(body.action, 'market')
+    return {
+      status: 200,
+      json: async () => ({
+        ok: true,
+        entries: [
+          { id: 'demo', name: 'Demo skill', description: 'A sample.', author: 'Tester', tags: ['demo'], source: 'https://github.com/yixin2021/dsh-skill-manager' },
+        ],
+      }),
+    }
+  }
+  tabs.find((tab) => tab.props['data-dsk-tab'] === 'market').props.onClick()
+  await app.settle()
+
+  const cards = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-market'])
+  assert.equal(cards.length, 1, 'the catalogue entry is shown as a card')
+  assert.match(app.text(), /Demo skill/)
+
+  // Installing the card posts an ordinary remote install for its source.
+  const calls = []
+  globalThis.fetch = async (url, init) => {
+    calls.push(JSON.parse(init.body))
+    return { status: 200, json: async () => ({ ok: true, entryName: 'demo', entries: [{ entryName: 'demo' }] }) }
+  }
+  const installButton = elementsOf(app.render()).find(
+    (element) => element.type === 'button' && element.props?.className?.includes('dsk-button') && element.children?.some?.((child) => child === '安装'),
+  ) ?? elementsOf(app.render()).find((element) => element.type === 'button' && JSON.stringify(element.children).includes('安装'))
+  assert.ok(installButton, 'the card carries an install button')
+  installButton.props.onClick()
+  await app.settle()
+  assert.deepEqual(calls[0], { action: 'install-from-remote', rootKey: 'user-dsh', url: 'https://github.com/yixin2021/dsh-skill-manager' })
+})

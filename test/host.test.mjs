@@ -21,7 +21,7 @@ import {
   resolveWithin,
   scanRoot,
 } from '../lib/skills-core.js'
-import { dispatch } from '../index.js'
+import { dispatch, internals } from '../index.js'
 
 /** A Host context whose only service is the workspace registry. */
 function fakeContext(workspaces) {
@@ -349,4 +349,18 @@ describe('mutations', () => {
     assert.equal(answer.code, 'unknown-action')
     assert.equal((await dispatch(ctx, null)).code, 'bad-request')
   })
+})
+
+test('the market reads the bundled catalogue and refuses a foreign source', async () => {
+  // The catalogue ships inside the package, so the Host reads it without the
+  // network. A malformed entry is dropped, and a source on a host the installer
+  // does not read is rejected outright rather than becoming a request the Host
+  // would make on the person's behalf.
+  const { readMarket } = internals
+  const answer = await readMarket()
+  assert.equal(answer.ok, true)
+  assert.ok(Array.isArray(answer.entries))
+  for (const entry of answer.entries) {
+    assert.match(entry.source, /^https:\/\/(github|gitlab|gitee|gitcode|atomgit)\.com\//)
+  }
 })

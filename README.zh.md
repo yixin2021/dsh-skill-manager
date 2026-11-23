@@ -32,6 +32,7 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
 | **自动识别** | Codex、Claude Code、Pi、GitHub Copilot、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
 | **Claude Code、Pi 与 Copilot 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`）、GitHub Copilot 的（`~/.copilot/skills`），以及每个仓库自己的 `.claude/skills`、`.pi/skills` 和 `.github/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
+| **技能市场** | 第二个页签浏览随包附带的精选技能目录（`docs/skills.json`），一键装进本地技能库。浏览本身不联网；安装复用与粘贴链接相同的远程导入路径。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -176,6 +177,30 @@ provider 交给模型，所以在这里停用技能是真的从模型目录里�
 
 Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`；这些目录已经
 各自有对应的行，所以 Copilot 只列 `.github/skills` 和 `~/.copilot/skills`，不重复。
+
+### 技能市场
+
+页面有两个页签：**我的技能** 是磁盘上已有的全部技能，**技能市场** 是一份精选清单，点一下即可安装。
+
+目录就是随包附带的 `docs/skills.json`，不需要后端，光是浏览也不联网：
+
+```json
+{
+  "schema": 1,
+  "skills": [
+    {
+      "id": "dsh-badge",
+      "name": "DSH Badge",
+      "description": "给文档、PR/MR 加上 powered by dsh 徽章……",
+      "author": "DeepSeek Harness",
+      "tags": ["docs", "attribution"],
+      "source": "https://github.com/yixin2021/dsh-skill-manager"
+    }
+  ]
+}
+```
+
+每条读入时都会校验：写坏的行会被丢弃；`source` 的主机若不在安装器已支持的范围内（`github.com`、`gitlab.com`、`gitee.com`、`gitcode.com`、`atomgit.com`）会被拒绝——市场不会扩大面板的抓取范围。安装一条就是把它的 `source` 作为普通的 `install-from-remote` 请求装进当前查看的技能库，因此大小上限、冲突拒绝和“选择技能”这一步都和粘贴链接完全一致。
 
 ### 添加的目录
 
