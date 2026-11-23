@@ -79,10 +79,39 @@ window.__ModuleLoader__.load({
       'market.search': 'Search the market',
       'market.noMatch': 'No skills match that search.',
       'market.skipped': '{count} catalogue entries were skipped as invalid.',
-      'market.sourceWarnings': '{count} market sources could not be read',
+      'market.sourceWarnings': '{count} market sources could not be read — the market may be incomplete',
       'market.fromIndex': 'Index',
       'market.fromBundled': 'Bundled',
       'market.count': '{count} skills available',
+      'action.marketSources': 'Index sources',
+      'marketSources.title': 'Market index sources',
+      'marketSources.subtitle': 'Where the market reads installable skills from',
+      'marketSources.builtin': 'Built-in',
+      'marketSources.added': 'Added',
+      'marketSources.label': 'Index link',
+      'marketSources.placeholder': 'https://github.com/owner/repo, or a link to a .json index',
+      'marketSources.add': 'Add',
+      'marketSources.adding': 'Adding…',
+      'marketSources.remove': 'Remove',
+      'marketSources.removeAll': 'Remove added',
+      'marketSources.hint':
+        'A repository link turns every SKILL.md in it into a card; a .json index lists repositories. The Host reads these indexes, so a link on this machine or a private network is refused.',
+      'marketSources.loading': 'Reading index sources…',
+      'marketSources.unavailable': 'Index sources are unavailable: {reason}',
+      'marketSources.duplicate': 'The market already reads that index.',
+      'marketSources.limit': 'At most {max} indexes can be added.',
+      'marketSources.err.not-string': 'An index source must be a link.',
+      'marketSources.err.empty': 'An index source cannot be empty.',
+      'marketSources.err.too-long': 'That link is too long to be an index source.',
+      'marketSources.err.nul': 'That link contains a character that is not allowed.',
+      'marketSources.err.not-a-link': 'That is not a full link. Paste one that starts with https://',
+      'marketSources.err.scheme': 'An index source must be an http:// or https:// link.',
+      'marketSources.err.credentials': 'An index source cannot carry a username or password.',
+      'marketSources.err.github-repo': 'That GitHub link does not name a repository.',
+      'marketSources.err.github-kind': 'Link a repository, or a JSON file inside it.',
+      'marketSources.err.private-host': 'That host is on this machine or a private network, so the market will not read it.',
+      'marketSources.err.blob-file': 'Link the JSON file itself on that host, not the repository page.',
+      'marketSources.err.json-file': 'An index link must point at a .json file.',
       'action.github': 'GitHub',
       'action.feedback': 'Report an issue',
       'action.githubTitle': 'Open the dsh-skill-manager repository on GitHub',
@@ -228,10 +257,39 @@ window.__ModuleLoader__.load({
       'market.search': '搜索技能市场',
       'market.noMatch': '没有匹配的技能。',
       'market.skipped': '有 {count} 条目录条目无效，已跳过。',
-      'market.sourceWarnings': '{count} 个市场索引源读取失败',
+      'market.sourceWarnings': '{count} 个市场索引源读取失败，市场可能不完整',
       'market.fromIndex': '索引',
       'market.fromBundled': '内置',
       'market.count': '共 {count} 个可用技能',
+      'action.marketSources': '索引源',
+      'marketSources.title': '技能市场索引源',
+      'marketSources.subtitle': '技能市场从这里读取可安装的技能',
+      'marketSources.builtin': '内置',
+      'marketSources.added': '已添加',
+      'marketSources.label': '索引链接',
+      'marketSources.placeholder': 'https://github.com/owner/repo，或 .json 索引的链接',
+      'marketSources.add': '添加',
+      'marketSources.adding': '添加中…',
+      'marketSources.remove': '移除',
+      'marketSources.removeAll': '移除已添加的',
+      'marketSources.hint':
+        '粘贴仓库链接会把仓库里每个 SKILL.md 变成一张卡片；粘贴 .json 索引链接则按索引里列出的仓库展开。索引由 Host 读取，因此本机或私有网络的链接会被拒绝。',
+      'marketSources.loading': '正在读取索引源…',
+      'marketSources.unavailable': '索引源暂不可用：{reason}',
+      'marketSources.duplicate': '技能市场已经在读取这个索引源。',
+      'marketSources.limit': '最多可以添加 {max} 个索引源。',
+      'marketSources.err.not-string': '索引源必须是一个链接。',
+      'marketSources.err.empty': '索引源链接不能为空。',
+      'marketSources.err.too-long': '链接太长，不能作为索引源。',
+      'marketSources.err.nul': '链接包含不允许的字符。',
+      'marketSources.err.not-a-link': '这不是一个完整链接，请粘贴以 https:// 开头的地址。',
+      'marketSources.err.scheme': '索引源必须是 http:// 或 https:// 链接。',
+      'marketSources.err.credentials': '索引源链接不能带用户名或密码。',
+      'marketSources.err.github-repo': '这个 GitHub 链接没有指向一个仓库。',
+      'marketSources.err.github-kind': '请链接到仓库，或仓库里的 JSON 文件。',
+      'marketSources.err.private-host': '该主机在本机或私有网络内，技能市场不会读取它。',
+      'marketSources.err.blob-file': '请链接到该主机上的 JSON 文件本身，而不是仓库页面。',
+      'marketSources.err.json-file': '索引链接必须指向 .json 文件。',
       'action.github': 'GitHub',
       'action.feedback': '问题反馈',
       'action.githubTitle': '在 GitHub 上打开 dsh-skill-manager 仓库',
@@ -607,8 +665,8 @@ window.__ModuleLoader__.load({
         '.dsk-market-scroll::-webkit-scrollbar-track{background:transparent}',
         '.dsk-market-toolbar{flex-wrap:nowrap}',
         '.dsk-market-search{flex:1 1 320px;max-width:460px;min-width:0}',
-        '.dsk-market-list{display:flex;flex-direction:column;gap:10px}',
-        '.dsk-market-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-market-list{display:flex;flex-direction:column;gap:10px;flex:none}',
+        '.dsk-market-card{display:flex;flex:none;align-items:flex-start;gap:12px;padding:14px 16px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
         '.dsk-market-main{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 auto}',
         '.dsk-market-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
         '.dsk-market-desc{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
@@ -618,6 +676,12 @@ window.__ModuleLoader__.load({
         '.dsk-market-summary{color:var(--dsw-alias-label-secondary);font-size:12px}',
         '.dsk-market-warnings summary{cursor:pointer;color:var(--dsw-alias-label-secondary)}',
         '.dsk-market-warning{margin-top:4px;color:var(--dsw-alias-label-secondary);font-size:12px;word-break:break-word}',
+        '.dsk-src-list{display:flex;flex-direction:column;gap:8px}',
+        '.dsk-src-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
+        '.dsk-src-main{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto}',
+        '.dsk-src-link{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;text-decoration:none}',
+        '.dsk-src-link:hover{color:var(--dsw-alias-brand-primary);text-decoration:underline}',
+        '.dsk-src-empty{color:var(--dsw-alias-label-secondary);font-size:12px}',
         '.dsk-title{margin:0;font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.2px}',
         '.dsk-subtitle{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}',
         '.dsk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -651,6 +715,12 @@ window.__ModuleLoader__.load({
         // squashed card clips its own rows. `flex:none` keeps every block at its
         // content height; the list, not the cards, does the scrolling.
         '.dsk-page>*{flex:0 0 auto}',
+        // The market pane is the one direct child that must fill the page and
+        // scroll inside itself: it holds the toolbar plus a long list of cards.
+        // This rule comes after the one above, and its class selector outweighs
+        // the `*`, so the market keeps `flex:1 1 auto` and its inner list, not
+        // the page, is what overflows.
+        '.dsk-page>.dsk-market{flex:1 1 auto;min-height:0}',
         // The one scrolling region, plus a thumb that only shows while it moves.
         '.dsk-body{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0}',
         '.dsk-list{display:flex;flex-direction:column;gap:16px;flex:1 1 auto;min-height:0;padding:2px 0 32px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}',
@@ -832,6 +902,8 @@ window.__ModuleLoader__.load({
         marketQuery: '',
         /* The catalogue entry id currently installing, if any. */
         marketBusy: undefined,
+        /* The index sources the market reads, for the manager dialog. */
+        marketSources: undefined,
       }
       const listeners = new Set()
       const emit = () => {
@@ -840,6 +912,42 @@ window.__ModuleLoader__.load({
       const set = (patch) => {
         state = { ...state, ...patch }
         emit()
+      }
+
+      /**
+       * The index-source rows one Host answer carries.
+       *
+       * A row without a key cannot be removed, so it is dropped rather than
+       * painted: every control in the manager addresses a source by its key.
+       *
+       * @param answer - the Host's answer.
+       * @returns the usable rows.
+       */
+      function sourceRows(answer) {
+        const rows = Array.isArray(answer?.sources) ? answer.sources : []
+        return rows.filter((row) => isRecord(row) && typeof row.key === 'string' && row.key.length > 0)
+      }
+
+      /**
+       * The sentence a failed add or remove shows.
+       *
+       * The Host speaks English; the page speaks the Host's language, so a
+       * stable `reason` is mapped to this package's own words and the Host's
+       * message is the fallback for a code this version has not learned.
+       *
+       * @param answer - the refusal.
+       * @returns the line to show.
+       */
+      function sourceError(answer) {
+        if (answer?.code === 'duplicate') return t('marketSources.duplicate')
+        if (answer?.code === 'limit') return fill(t('marketSources.limit'), { max: String(answer.max ?? '') })
+        const reason = typeof answer?.reason === 'string' ? answer.reason : ''
+        if (reason.length > 0) {
+          const key = `marketSources.err.${reason}`
+          const line = t(key)
+          if (line !== key) return line
+        }
+        return answer?.message || t('error.generic')
       }
 
       /** Run one Host action, folding a refusal into visible state. */
@@ -907,6 +1015,7 @@ window.__ModuleLoader__.load({
               market: {
                 status: 'ready',
                 entries: Array.isArray(answer.entries) ? answer.entries : [],
+                sources: sourceRows(answer),
                 warning: typeof answer.warning === 'string' ? answer.warning : '',
                 warnings: Array.isArray(answer.warnings) ? answer.warnings : [],
                 skipped: Number(answer.skipped) || 0,
@@ -968,6 +1077,76 @@ window.__ModuleLoader__.load({
             return false
           }
           set({ error: answer.message || t('error.generic') })
+          return false
+        },
+        /** Open the manager dialog, seeding it from the catalogue answer. */
+        openMarketSources() {
+          set({ dialog: { kind: 'market-sources' } })
+          if (state.marketSources !== undefined) return
+          const rows = state.market?.status === 'ready' ? state.market.sources : undefined
+          if (Array.isArray(rows)) set({ marketSources: { status: 'ready', rows, busy: false, message: '' } })
+          else store.loadMarketSources()
+        },
+        /**
+         * Read the index sources the market will use.
+         * @param force - reread even if a list is already on screen.
+         */
+        async loadMarketSources(force) {
+          if (state.marketSources?.status === 'ready' && !force) return
+          set({ marketSources: { status: 'loading', rows: [], busy: false, message: '' } })
+          const answer = await callHost({ action: 'market-sources' })
+          if (answer.ok === true) {
+            set({ marketSources: { status: 'ready', rows: sourceRows(answer), busy: false, message: '' } })
+          } else {
+            set({ marketSources: { status: 'error', rows: [], busy: false, message: answer.message || t('error.generic') } })
+          }
+        },
+        /**
+         * Add one pasted link, then reread the market so its new cards appear.
+         * @param value - what the person typed.
+         */
+        async addMarketSource(value) {
+          const current = state.marketSources ?? { status: 'ready', rows: [], busy: false, message: '' }
+          if (current.busy === true) return false
+          set({ marketSources: { ...current, status: 'ready', busy: true, message: '' } })
+          const answer = await callHost({ action: 'add-market-source', value })
+          if (answer.ok === true) {
+            set({ marketSources: { status: 'ready', rows: sourceRows(answer), busy: false, message: '' } })
+            await store.loadMarket(true)
+            return true
+          }
+          set({ marketSources: { ...current, status: 'ready', busy: false, message: sourceError(answer) } })
+          return false
+        },
+        /**
+         * Forget one added index. The built-in one carries no remove control.
+         * @param key - the row key the Host listed.
+         */
+        async removeMarketSource(key) {
+          const current = state.marketSources ?? { status: 'ready', rows: [], busy: false, message: '' }
+          if (current.busy === true) return false
+          set({ marketSources: { ...current, status: 'ready', busy: true, message: '' } })
+          const answer = await callHost({ action: 'remove-market-source', key })
+          if (answer.ok === true) {
+            set({ marketSources: { status: 'ready', rows: sourceRows(answer), busy: false, message: '' } })
+            await store.loadMarket(true)
+            return true
+          }
+          set({ marketSources: { ...current, status: 'ready', busy: false, message: sourceError(answer) } })
+          return false
+        },
+        /** Forget every added index, keeping the built-in one. */
+        async resetMarketSources() {
+          const current = state.marketSources ?? { status: 'ready', rows: [], busy: false, message: '' }
+          if (current.busy === true) return false
+          set({ marketSources: { ...current, status: 'ready', busy: true, message: '' } })
+          const answer = await callHost({ action: 'reset-market-sources' })
+          if (answer.ok === true) {
+            set({ marketSources: { status: 'ready', rows: sourceRows(answer), busy: false, message: '' } })
+            await store.loadMarket(true)
+            return true
+          }
+          set({ marketSources: { ...current, status: 'ready', busy: false, message: sourceError(answer) } })
           return false
         },
         /** @param dialog - the open dialog, or undefined. */
@@ -1482,6 +1661,120 @@ window.__ModuleLoader__.load({
             ),
             h('div', { className: 'dsk-note' }, t('addRoot.hint')),
           ),
+        )
+      }
+
+      /**
+       * Where the market's cards come from: the built-in index plus the links a
+       * person added, each removable except the built-in one.
+       *
+       * Adding does not fetch the index on this page: the Host validates and
+       * stores the link, then rereads the market. A source that is down must
+       * still be storable, or a typo could never be fixed after it failed.
+       */
+      function MarketSourcesDialog({ state }) {
+        const sources = state.marketSources
+        const [value, setValue] = React.useState('')
+        const busy = sources?.busy === true
+        const ready = value.trim().length > 0 && !busy
+        const rows = sources?.rows ?? []
+        const added = rows.filter((row) => row.builtin !== true)
+        const submit = () => {
+          if (!ready) return
+          store.addMarketSource(value.trim()).then((ok) => {
+            if (ok) setValue('')
+          })
+        }
+        const body = []
+        if (sources === undefined || sources.status === 'loading') {
+          body.push(h('div', { className: 'dsk-src-empty' }, t('marketSources.loading')))
+        } else if (sources.status === 'error') {
+          body.push(
+            h(
+              'div',
+              { className: 'dsk-note dsk-note-error', role: 'alert' },
+              fill(t('marketSources.unavailable'), { reason: sources.message ?? '' }),
+            ),
+          )
+        } else {
+          body.push(
+            rows.length === 0
+              ? h('div', { className: 'dsk-src-empty' }, t('marketSources.empty'))
+              : h(
+                  'div',
+                  { className: 'dsk-src-list', 'data-dsk-source-list': String(rows.length) },
+                  rows.map((row) =>
+                    h(
+                      'div',
+                      { key: row.key, className: 'dsk-src-row', 'data-dsk-source': row.key },
+                      h(
+                        'div',
+                        { className: 'dsk-src-main' },
+                        row.page
+                          ? h(
+                              'a',
+                              { className: 'dsk-src-link', href: row.page, target: '_blank', rel: 'noreferrer noopener', title: String(row.page) },
+                              row.label ?? row.key,
+                            )
+                          : h('span', { className: 'dsk-src-link' }, row.label ?? row.key),
+                        h(Chip, { tone: undefined }, row.builtin === true ? t('marketSources.builtin') : t('marketSources.added')),
+                      ),
+                      row.builtin === true
+                        ? null
+                        : h(
+                            Action,
+                            { variant: 'quiet', onClick: () => store.removeMarketSource(row.key), disabled: busy },
+                            t('marketSources.remove'),
+                          ),
+                    ),
+                  ),
+                ),
+          )
+          if (typeof sources.message === 'string' && sources.message.length > 0) {
+            body.push(h('div', { className: 'dsk-note dsk-note-error', role: 'alert', 'data-dsk-source-error': 'true' }, sources.message))
+          }
+        }
+        body.push(
+          h(
+            'div',
+            { className: 'dsk-form' },
+            h(
+              'div',
+              { className: 'dsk-col' },
+              h('span', { className: 'dsk-label' }, t('marketSources.label')),
+              h('input', {
+                className: 'dsk-input',
+                value,
+                placeholder: t('marketSources.placeholder'),
+                'data-dsk-source-input': 'true',
+                onChange: (event) => setValue(event.target.value),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter') submit()
+                },
+              }),
+            ),
+            h('div', { className: 'dsk-note' }, t('marketSources.hint')),
+          ),
+        )
+        return h(
+          Dialog,
+          {
+            title: t('marketSources.title'),
+            subtitle: t('marketSources.subtitle'),
+            onClose: () => store.setDialog(undefined),
+            footer: [
+              added.length > 0
+                ? h(
+                    Action,
+                    { key: 'reset', variant: 'quiet', onClick: () => store.resetMarketSources(), disabled: busy, 'data-dsk-source-reset': 'true' },
+                    t('marketSources.removeAll'),
+                  )
+                : null,
+              h(Action, { key: 'add', variant: 'primary', onClick: submit, disabled: !ready }, busy ? t('marketSources.adding') : t('marketSources.add')),
+              h(Action, { key: 'close', onClick: () => store.setDialog(undefined) }, t('action.close')),
+            ],
+          },
+          body,
         )
       }
 
@@ -2029,6 +2322,11 @@ window.__ModuleLoader__.load({
               }),
             ),
             h(Action, { variant: 'quiet', onClick: () => store.loadMarket(true), disabled: state.marketBusy !== undefined }, t('action.reload')),
+            h(
+              Action,
+              { variant: 'quiet', onClick: () => store.openMarketSources(), 'data-dsk-market-sources': 'true' },
+              t('action.marketSources'),
+            ),
           ),
           market.warning ? h('div', { className: 'dsk-note' }, market.warning) : null,
           Array.isArray(market.warnings) && market.warnings.length > 0
@@ -2290,6 +2588,7 @@ window.__ModuleLoader__.load({
           state.detail ? h(DetailDialog, { detail: state.detail }) : null,
           state.dialog?.kind === 'create' && manageable.length > 0 ? h(CreateDialog, { roots: manageable, defaultRootKey: defaultRoot }) : null,
           state.dialog?.kind === 'add-root' ? h(AddRootDialog, null) : null,
+          state.dialog?.kind === 'market-sources' ? h(MarketSourcesDialog, { state }) : null,
           state.dialog?.kind === 'install'
             ? h(InstallDialog, { roots: manageable, defaultRootKey: defaultRoot, source: state.dialog.source })
             : null,

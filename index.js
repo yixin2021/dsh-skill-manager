@@ -23,6 +23,14 @@ import { fileURLToPath } from 'node:url'
 
 import { parseRemoteUrl, readRemoteTree } from './lib/remote-source.js'
 import { expandIndex, parseCatalogue } from './lib/market.js'
+import {
+  MAX_MARKET_SOURCES,
+  marketSourceKey,
+  marketSourceLabel,
+  marketSourcePage,
+  normalizeMarketSources,
+  parseMarketSource,
+} from './lib/market-sources.js'
 import { MAX_CANDIDATES, collectSkillFilesDetailed, findSkillCandidates } from './lib/skill-tree.js'
 import {
   DISABLED_DIR,
@@ -126,6 +134,89 @@ async function readCustomRoots() {
 async function writeCustomRoots(paths) {
   await mkdir(dshHome(), { recursive: true })
   await writeFile(customRootsFile(), `${JSON.stringify({ paths }, null, 2)}\n`, 'utf8')
+}
+
+/**
+ * Where the added market indexes are remembered.
+ *
+ * The same reasoning as the added directories: the list is a fact about this
+ * machine, not about a profile, so it lives beside the skills home and is
+ * shared by the web and desktop apps.
+ *
+ * @returns the absolute path of the JSON file.
+ */
+function marketSourcesFile() {
+  return join(dshHome(), 'skills-market-sources.json')
+}
+
+/**
+ * Read the added market indexes.
+ *
+ * Every stored row passes back through the same validator a typed link does, so
+ * a hand-edited file cannot widen what the Host will fetch. A damaged file is an
+ * empty list rather than an error: the market must still open, and the built-in
+ * index is enough to fill it.
+ *
+ * @returns the sources, in the order they were added.
+ */
+async function readMarketSources() {
+  let text
+  try {
+    text = await readFile(marketSourcesFile(), 'utf8')
+  } catch {
+    return []
+  }
+  let parsed
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return []
+  }
+  return normalizeMarketSources(parsed?.sources)
+}
+
+/**
+ * Persist the added market indexes.
+ *
+ * The market cache is dropped because a source that was just added or removed
+ * would otherwise keep answering from the ten-minute copy.
+ *
+ * @param sources - the sources, in display order.
+ */
+async function writeMarketSources(sources) {
+  await mkdir(dshHome(), { recursive: true })
+  await writeFile(marketSourcesFile(), `${JSON.stringify({ sources }, null, 2)}\n`, 'utf8')
+  marketIndexCache.clear()
+}
+
+/**
+ * Describe the sources the market reads, for the page that manages them.
+ *
+ * The built-in index is listed first and marked, because a person cannot remove
+ * it — the market would be empty on a fresh machine — but they should still see
+ * what it is reading.
+ *
+ * @param sources - the added sources.
+ * @returns one row per source the market will read.
+ */
+function describeMarketSources(sources) {
+  const rows = MARKET_INDEX_SOURCES.map((source) => ({
+    key: marketSourceKey(source),
+    label: marketSourceLabel(source),
+    page: marketSourcePage(source),
+    builtin: true,
+    source,
+  }))
+  for (const source of sources) {
+    rows.push({
+      key: marketSourceKey(source),
+      label: marketSourceLabel(source),
+      page: marketSourcePage(source),
+      builtin: false,
+      source,
+    })
+  }
+  return rows
 }
 
 /** @returns whether `value` is a plain JSON object. */
@@ -574,32 +665,52 @@ function marketFile() {
 }
 
 /**
- * Read the bundled skill-market catalogue.
- *
- * The file ships inside this package, so this never touches the network. A
- * missing or broken file answers an empty list with a warning instead of
- * failing the page: the market tab is a convenience, and the rest of the panel
- * must keep working without it.
- *
- * @returns the validated entries, or an explanatory failure.
- */
-/**
- * The published indexes the market reads in addition to the bundled catalogue.
+ * The indexes the market reads in addition to the bundled catalogue.
  *
  * Each index is a JSON document listing GitHub repositories; the market expands
- * them into the skills those repositories hold. Keeping the list here (rather
- * than in the page) means a person cannot make the Host fetch an arbitrary
- * URL, and it is the one place to edit when a source moves.
+ * them into the skills those repositories hold. This list is the built-in one,
+ * always read and never removable — a fresh machine would otherwise open an
+ * empty market. The indexes a person adds live beside the skills
+ * (`skills-market-sources.json`) and are validated by `lib/market-sources.js`,
+ * which also refuses loopback and private-network hosts: the Host is the one
+ * making the request, so the page must not be able to aim it inward.
  *
  * An index is identified by a GitHub repository and a path inside it, not a
  * raw.githubusercontent.com URL: on some networks that host is reset while the
  * GitHub API is reachable, so the file is fetched through the same API the
  * tree reader already uses (`/contents`, which returns the file base64-encoded)
- * with a raw fallback. An index with no repo (an absolute URL) is fetched
- * directly, so a self-hosted index still works where its host is reachable.
+ * with a raw fallback. A source that is a plain `{ url }` is fetched directly,
+ * so a self-hosted index still works where its host is reachable.
  */
 /** The GitHub REST root used for the tree read and the index read. */
 const GITHUB_API = 'https://api.github.com'
+
+/**
+ * The GitHub token the environment offers, if any.
+ *
+ * Anonymous API reads are limited to sixty requests per hour per IP, and every
+ * market read costs one request per repository — a few reads during one
+ * afternoon exhaust that budget and the market drops to the bundled entry. A
+ * `GITHUB_TOKEN` or `GH_TOKEN` in the environment raises the limit without
+ * storing a credential in this package.
+ *
+ * @returns the token, or an empty string.
+ */
+function marketToken() {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+  return typeof token === 'string' ? token.trim() : ''
+}
+
+/**
+ * Point at the fix when the failure is the anonymous GitHub limit.
+ * @param message - the failure as the fetch reported it.
+ * @returns the message, with a hint when it looks like a 403.
+ */
+function withLimitHint(message) {
+  return /HTTP 403/.test(message)
+    ? `${message} — the anonymous GitHub API limit may be exhausted; set GITHUB_TOKEN to raise it`
+    : message
+}
 
 const MARKET_INDEX_SOURCES = [
   { repo: 'yixin2021/dsh-skill-manager', path: 'docs/market-index.json' },
@@ -624,8 +735,9 @@ const marketIndexCache = new Map()
  * @returns the file's text.
  * @throws when neither route returns the file.
  */
-async function fetchGitHubFile(repo, path, signal) {
+async function fetchGitHubFile(repo, path, signal, token) {
   const headers = { accept: 'application/vnd.github.raw+json', 'user-agent': 'dsh-skill-manager' }
+  if (typeof token === 'string' && token.length > 0) headers.authorization = `Bearer ${token}`
   try {
     const url = `${GITHUB_API}/repos/${repo}/contents/${path}`
     const response = await fetch(url, { headers, signal })
@@ -645,7 +757,9 @@ async function fetchGitHubFile(repo, path, signal) {
   } catch (error) {
     // Second attempt: the raw host, in case only the API path is blocked.
     const raw = `https://raw.githubusercontent.com/${repo}/HEAD/${path}`
-    const response = await fetch(raw, { headers: { 'user-agent': 'dsh-skill-manager' }, signal })
+    const headers = { 'user-agent': 'dsh-skill-manager' }
+    if (typeof token === 'string' && token.length > 0) headers.authorization = `Bearer ${token}`
+    const response = await fetch(raw, { headers, signal })
     if (!response.ok) throw new Error(error instanceof Error ? `${error.message}; raw HTTP ${response.status}` : String(error))
     return response.text()
   }
@@ -654,11 +768,22 @@ async function fetchGitHubFile(repo, path, signal) {
 /**
  * Read one index source and expand its repositories.
  *
- * @param source - `{ repo?, path }` or a plain URL string.
+ * Three shapes reach here, all of them already validated by
+ * `lib/market-sources.js`:
+ *
+ *   { repo, path: 'docs/index.json' }  a JSON list of repositories, over the API
+ *   { repo, path: '' }                 the repository itself, every SKILL.md
+ *   { url }                            a JSON list, read directly
+ *
+ * A bare repository is the shape a person gets by pasting a repository link, and
+ * it is expanded by handing the index reader a one-repository list, so the tree
+ * walk and the per-skill view links stay in one place.
+ *
+ * @param source - a validated source.
  * @returns the entries and warnings, or warnings when the read failed.
  */
 async function readIndexSource(source) {
-  const label = typeof source === 'string' ? source : `${source.repo}:${source.path}`
+  const label = marketSourceLabel(source)
   const cached = marketIndexCache.get(label)
   if (cached !== undefined && Date.now() - cached.at < MARKET_INDEX_TTL_MS) {
     return cached
@@ -666,22 +791,56 @@ async function readIndexSource(source) {
   const result = { at: Date.now(), entries: [], warnings: [] }
   const controller = typeof AbortController === 'function' ? new AbortController() : undefined
   const timer = controller === undefined ? undefined : setTimeout(() => controller.abort(), 12_000)
+  const token = marketToken()
   try {
     let raw
-    if (typeof source === 'string') {
-      const response = await fetch(source, { headers: { accept: 'application/json', 'user-agent': 'dsh-skill-manager' }, signal: controller?.signal })
+    if (typeof source === 'string' || typeof source?.url === 'string') {
+      const target = typeof source === 'string' ? source : source.url
+      // No Authorization here: the URL may be any public host, and only GitHub
+      // should ever see the token. The tree reads that follow are GitHub calls
+      // and do receive it.
+      const response = await fetch(target, {
+        headers: { accept: 'application/json', 'user-agent': 'dsh-skill-manager' },
+        signal: controller?.signal,
+      })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       raw = await response.json()
+    } else if (source.path === '') {
+      raw = { repositories: [`https://github.com/${source.repo}`] }
     } else {
-      const text = await fetchGitHubFile(source.repo, source.path, controller?.signal)
+      const text = await fetchGitHubFile(source.repo, source.path, controller?.signal, token)
       raw = JSON.parse(text)
     }
-    const expanded = await expandIndex(raw, { seen: new Set() })
+    const expanded = await expandIndex(raw, { seen: new Set(), token })
     result.entries = expanded.entries
-    result.warnings = expanded.warnings
+    result.warnings = expanded.warnings.map(withLimitHint)
+    // expandIndex turns a dead repository into a warning rather than an
+    // exception, so a rate-limited refresh arrives here as "no entries plus
+    // warnings". Keep the previous copy in that case instead of emptying the
+    // market.
+    if (cached !== undefined && result.entries.length === 0 && expanded.warnings.length > 0) {
+      return {
+        ...cached,
+        warnings: [...cached.warnings, `Could not refresh the market index ${label}; showing the last read.`, ...result.warnings],
+      }
+    }
   } catch (error) {
-    const kind = typeof source === 'string' ? 'URL' : 'index'
-    result.warnings = [`Could not read the market ${kind} ${label}: ${error instanceof Error ? error.message : String(error)}`]
+    const message = error instanceof Error ? error.message : String(error)
+    // A successful read is worth keeping through a failed one: the anonymous
+    // GitHub API limit resets hourly, and dropping 200 cards because the
+    // refresh hit a 403 makes the market look empty. The stale copy keeps the
+    // market usable while the next attempt happens.
+    if (cached !== undefined) {
+      return {
+        ...cached,
+        warnings: [
+          ...cached.warnings,
+          `Could not refresh the market index ${label}: ${message}. Showing the last read.`,
+        ],
+      }
+    }
+    const kind = typeof source === 'string' || typeof source?.url === 'string' ? 'URL' : 'index'
+    result.warnings = [`Could not read the market ${kind} ${label}: ${withLimitHint(message)}`]
   } finally {
     if (timer !== undefined) clearTimeout(timer)
   }
@@ -729,8 +888,16 @@ async function readMarket(options = {}) {
     }
   }
 
+  // Read once: the answer carries the list for the page that manages it, and the
+  // same rows are what gets fetched.
+  const stored = await readMarketSources()
+
   if (options.includeIndexes !== false) {
-    const results = await Promise.all(MARKET_INDEX_SOURCES.map((source) => readIndexSource(source)))
+    // The built-in index and the ones a person added are read the same way, so a
+    // source added today behaves exactly like the one that ships. A damaged
+    // bookkeeping file simply contributes nothing.
+    const sources = [...MARKET_INDEX_SOURCES, ...stored]
+    const results = await Promise.all(sources.map((source) => readIndexSource(source)))
     for (const result of results) {
       for (const warning of result.warnings) warnings.push(warning)
       for (const entry of result.entries) {
@@ -743,7 +910,87 @@ async function readMarket(options = {}) {
     }
   }
 
-  return { ok: true, entries: entries.slice(0, MARKET_MAX_ENTRIES), skipped, warnings }
+  return {
+    ok: true,
+    entries: entries.slice(0, MARKET_MAX_ENTRIES),
+    sources: describeMarketSources(stored),
+    skipped,
+    warnings,
+  }
+}
+
+/**
+ * Answer the list of index sources the market reads.
+ *
+ * @returns the built-in row first, then the added ones.
+ */
+async function listMarketSources() {
+  return { ok: true, sources: describeMarketSources(await readMarketSources()) }
+}
+
+/**
+ * Add one index source.
+ *
+ * The link is validated before it is stored, and the same validator runs again
+ * on the way back out, so a hand-edited file cannot make the Host fetch
+ * something a typed link could not. Nothing is fetched here: an index that is
+ * down must still be storable, or the person could never fix a typo in a link
+ * that already fails.
+ *
+ * @param request - `value`, the pasted link.
+ * @returns the new list, or a typed refusal.
+ */
+async function addMarketSource(request) {
+  const parsed = parseMarketSource(request.value)
+  if (parsed.error !== undefined) {
+    return { ok: false, code: 'bad-source', reason: parsed.reason, message: parsed.error }
+  }
+  const key = marketSourceKey(parsed.source)
+  const sources = await readMarketSources()
+  const all = [...MARKET_INDEX_SOURCES, ...sources]
+  if (all.some((source) => marketSourceKey(source) === key)) {
+    return { ok: false, code: 'duplicate', message: 'The market already reads that index.' }
+  }
+  if (sources.length >= MAX_MARKET_SOURCES) {
+    return { ok: false, code: 'limit', max: MAX_MARKET_SOURCES, message: `At most ${MAX_MARKET_SOURCES} indexes can be added.` }
+  }
+  sources.push(parsed.source)
+  await writeMarketSources(sources)
+  return { ok: true, sources: describeMarketSources(sources) }
+}
+
+/**
+ * Forget one added index source.
+ *
+ * Only the bookkeeping row goes away. The built-in index is not removable: a
+ * market with no source at all would open empty on every fresh machine.
+ *
+ * @param request - `key`, as listed by `market-sources`.
+ * @returns the remaining list, or a typed refusal.
+ */
+async function removeMarketSource(request) {
+  const key = typeof request.key === 'string' ? request.key : ''
+  if (key.length === 0) return { ok: false, code: 'bad-request', message: 'An index source key is required.' }
+  if (MARKET_INDEX_SOURCES.some((source) => marketSourceKey(source) === key)) {
+    return { ok: false, code: 'builtin', message: 'The built-in index cannot be removed.' }
+  }
+  const sources = await readMarketSources()
+  const remaining = sources.filter((source) => marketSourceKey(source) !== key)
+  if (remaining.length === sources.length) {
+    return { ok: false, code: 'unknown-source', message: 'That index is not in the added list.' }
+  }
+  await writeMarketSources(remaining)
+  return { ok: true, sources: describeMarketSources(remaining) }
+}
+
+/**
+ * Drop every added index source, keeping the built-in one.
+ *
+ * @returns the list, which is now the built-in index alone.
+ */
+async function resetMarketSources() {
+  await writeMarketSources([])
+  return { ok: true, sources: describeMarketSources([]) }
 }
 
 /**
@@ -1297,6 +1544,14 @@ async function answerRequest(ctx, request) {
       return listEverything(ctx)
     case 'market':
       return readMarket()
+    case 'market-sources':
+      return listMarketSources()
+    case 'add-market-source':
+      return addMarketSource(request)
+    case 'remove-market-source':
+      return removeMarketSource(request)
+    case 'reset-market-sources':
+      return resetMarketSources()
     case 'add-root':
       return addCustomRoot(ctx, request)
     case 'remove-root':
@@ -1391,7 +1646,14 @@ export const internals = {
   createCustomProvider,
   agentHomeFrom,
   readMarket,
+  readIndexSource,
+  marketIndexCache,
+  readMarketSources,
+  writeMarketSources,
+  marketSourcesFile,
+  describeMarketSources,
   MARKET_INDEX_SOURCES,
+  MAX_MARKET_SOURCES,
   marketFile,
   agentLibraryCandidates,
   discoverAgentLibraries,

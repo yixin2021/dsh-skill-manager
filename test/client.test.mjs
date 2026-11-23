@@ -1117,3 +1117,140 @@ test('the market list scrolls in its own region, not the page', () => {
   assert.match(scroll[1], /min-height:0/)
   assert.match(scroll[1], /flex:1 1 auto/)
 })
+
+test('the market pane outranks the page-wide flex reset, so it can scroll', () => {
+  // `.dsk-page>*{flex:0 0 auto}` keeps every block at its content height, which
+  // is what stops the library cards from being squashed. That same rule also
+  // hit the market pane, whose own `.dsk-market{flex:1 1 auto}` comes EARLIER
+  // in the sheet and therefore lost: the pane grew to its full content height,
+  // the page clipped it and no scrollbar ever appeared. The market rule must
+  // come after the reset and win on specificity.
+  const css = stylesheetOf(loadClient())
+  const reset = css.indexOf('.dsk-page>*{')
+  const rule = css.indexOf('.dsk-page>.dsk-market{')
+  assert.ok(reset >= 0, 'the page-wide flex reset is still there')
+  assert.ok(rule > reset, 'the market rule comes after the reset, so document order cannot lose')
+  const body = /\.dsk-page>\.dsk-market\{([^}]*)\}/.exec(css)
+  assert.ok(body, '.dsk-page>.dsk-market is styled')
+  assert.match(body[1], /flex:1 1 auto/, 'the pane fills the leftover height')
+  assert.match(body[1], /min-height:0/, 'and can shrink below its content')
+})
+
+test('the market exposes its index sources, and a custom link can be added and removed', async () => {
+  const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
+  const builtin = {
+    key: 'yixin2021/dsh-skill-manager/docs/market-index.json',
+    label: 'yixin2021/dsh-skill-manager/docs/market-index.json',
+    page: 'https://github.com/yixin2021/dsh-skill-manager/blob/HEAD/docs/market-index.json',
+    builtin: true,
+    source: { repo: 'yixin2021/dsh-skill-manager', path: 'docs/market-index.json' },
+  }
+  const entry = {
+    id: 'alpha',
+    name: 'Alpha',
+    description: 'A sample skill.',
+    author: 'owner',
+    tags: [],
+    source: 'https://github.com/owner/repo',
+    path: 'skills/alpha',
+    view: 'https://github.com/owner/repo/tree/HEAD/skills/alpha',
+    origin: 'index',
+  }
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'market') {
+      return { status: 200, json: async () => ({ ok: true, entries: [entry], sources: [builtin], warnings: [], skipped: 0 }) }
+    }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+
+  // Open the market, then its index-source manager: the list comes from the
+  // catalogue answer, so opening it needs no second read.
+  await app.click('技能市场')
+  await app.click('索引源')
+  const rows = elementsOf(app.render()).filter((element) => element.props?.['data-dsk-source'])
+  assert.equal(rows.length, 1, 'the built-in index is listed')
+  assert.match(app.text(), /内置/)
+  assert.doesNotMatch(app.text(), /移除/, 'the built-in index has no remove control')
+
+  // The card links to the skill's own folder, not the repository root.
+  const card = elementsOf(app.render()).find((element) => element.props?.['data-dsk-market'] === 'alpha')
+  assert.ok(card)
+  const sourceLink = elementsOf(card).find((element) => element.type === 'a')
+  assert.equal(sourceLink.props.href, 'https://github.com/owner/repo/tree/HEAD/skills/alpha')
+
+  const calls = []
+  const withAdded = [builtin, { key: 'owner/repo', label: 'owner/repo', page: 'https://github.com/owner/repo', builtin: false, source: { repo: 'owner/repo', path: '' } }]
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    calls.push(body)
+    if (body.action === 'add-market-source') return { status: 200, json: async () => ({ ok: true, sources: withAdded }) }
+    if (body.action === 'market') {
+      return { status: 200, json: async () => ({ ok: true, entries: [entry], sources: withAdded, warnings: [], skipped: 0 }) }
+    }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+
+  const input = elementsOf(app.render()).find((element) => element.props?.['data-dsk-source-input'])
+  assert.ok(input, 'the dialog has an index-link field')
+  input.props.onChange({ target: { value: 'https://github.com/owner/repo' } })
+  await app.click('添加')
+
+  assert.deepEqual(calls[0], { action: 'add-market-source', value: 'https://github.com/owner/repo' })
+  assert.ok(calls.some((call) => call.action === 'market'), 'the market is reread so the new cards appear')
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.['data-dsk-source']).length, 2)
+  assert.match(app.text(), /owner\/repo/, 'the added source is listed')
+  const remove = app.buttons().find((button) => button.text === '移除')
+  assert.ok(remove, 'an added source can be removed')
+
+  const removeCalls = []
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    removeCalls.push(body)
+    if (body.action === 'remove-market-source') return { status: 200, json: async () => ({ ok: true, sources: [builtin] }) }
+    if (body.action === 'market') return { status: 200, json: async () => ({ ok: true, entries: [entry], sources: [builtin], warnings: [], skipped: 0 }) }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+  await app.click('移除')
+  assert.deepEqual(removeCalls[0], { action: 'remove-market-source', key: 'owner/repo' })
+})
+
+test('a refused index link is explained in the panel language, not the Host English', async () => {
+  const root = { key: 'user-dsh', kind: 'user', source: 'user-dsh', path: '/home/u/.dsh/skills', exists: true, skills: [], trash: [] }
+  const app = mountClient({ roots: [root] })
+  await app.settle()
+
+  const builtin = { key: 'builtin/index.json', label: 'builtin/index.json', page: 'https://github.com/o/r/blob/HEAD/i.json', builtin: true, source: { repo: 'o/r', path: 'i.json' } }
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'market') return { status: 200, json: async () => ({ ok: true, entries: [], sources: [builtin], warnings: [], skipped: 0 }) }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+  await app.click('技能市场')
+  await app.click('索引源')
+
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.action === 'add-market-source') {
+      return {
+        status: 200,
+        json: async () => ({
+          ok: false,
+          code: 'bad-source',
+          reason: 'private-host',
+          message: 'That host is on this machine or a private network, so the market will not read it.',
+        }),
+      }
+    }
+    return { status: 200, json: async () => ({ ok: true, roots: [root] }) }
+  }
+  const input = elementsOf(app.render()).find((element) => element.props?.['data-dsk-source-input'])
+  input.props.onChange({ target: { value: 'http://127.0.0.1/index.json' } })
+  await app.click('添加')
+  assert.match(app.text(), /该主机在本机或私有网络内，技能市场不会读取它。/)
+  assert.doesNotMatch(app.text(), /private network, so the market will not read it/)
+  assert.equal(elementsOf(app.render()).filter((element) => element.props?.['data-dsk-source-error']).length, 1)
+})

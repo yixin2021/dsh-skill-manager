@@ -3,12 +3,14 @@
   "updated": "2026-11-23",
   "skills": [
     {
-      "id": "dsh-badge",
-      "name": "DSH Badge",
-      "description": "给文档、Pull Request、Merge Request 加上官方 “powered by dsh” 徽章。离线内置条目，无需联网即可安装。",
-      "author": "DeepSeek Harness",
-      "tags": ["docs", "attribution"],
-      "source": "https://github.com/yixin2021/dsh-skill-manager"
+      "id": "skill-creator",
+      "name": "Skill Creator",
+      "description": "创建、改进和打包 Agent Skill 的官方指南与模板（来自 anthropics/skills）。随包附带的条目，离线可浏览；安装时从 GitHub 读取技能目录。",
+      "author": "Anthropic",
+      "tags": ["skills", "docs"],
+      "source": "https://github.com/anthropics/skills",
+      "path": "skills/skill-creator",
+      "view": "https://github.com/anthropics/skills/tree/HEAD/skills/skill-creator"
     }
   ]
 }

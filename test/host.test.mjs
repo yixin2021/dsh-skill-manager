@@ -404,7 +404,8 @@ test('the market reads bundled skills without the network', async () => {
   const { readMarket } = internals
   const answer = await readMarket({ includeIndexes: false })
   assert.equal(answer.ok, true)
-  assert.ok(answer.entries.some((entry) => entry.id === 'dsh-badge'), 'the bundled catalogue is present offline')
+  assert.ok(answer.entries.some((entry) => entry.id === 'skill-creator'), 'the bundled catalogue is present offline')
+  assert.ok(answer.entries.every((entry) => entry.view === undefined || entry.view.length > 0), 'a bundled entry may carry its own view link')
   for (const entry of answer.entries) {
     assert.equal(entry.origin, 'bundled')
   }
@@ -442,4 +443,207 @@ test('every expanded index entry carries a per-skill view link', async () => {
     assert.match(entry.view, /^https:\/\/github\.com\/o\/r\/tree\/HEAD\/skills\/(alpha|beta)$/)
   }
   assert.notEqual(result.entries[0].view, result.entries[1].view, 'two skills in one repo link to different folders')
+})
+
+describe('market index sources', () => {
+  let base
+  let ctx
+
+  before(async () => {
+    base = await mkdtemp(join(tmpdir(), 'dsh-skill-manager-sources-'))
+    process.env.DSH_HOME = base
+    process.env.DSH_AGENTS_HOME = join(base, '.agents')
+    ctx = fakeContext([])
+    await dispatch(ctx, { action: 'reset-market-sources' })
+  })
+
+  after(async () => {
+    delete process.env.DSH_HOME
+    delete process.env.DSH_AGENTS_HOME
+    await rm(base, { recursive: true, force: true })
+  })
+
+  const added = (answer) => (answer.sources ?? []).filter((row) => row.builtin !== true)
+
+  test('the built-in index is listed, and cannot be removed', async () => {
+    const listed = await dispatch(ctx, { action: 'market-sources' })
+    assert.equal(listed.ok, true)
+    const builtin = listed.sources.filter((row) => row.builtin === true)
+    assert.equal(builtin.length, internals.MARKET_INDEX_SOURCES.length)
+    assert.match(builtin[0].label, /dsh-skill-manager/)
+    assert.match(builtin[0].page, /^https:\/\/github\.com\//)
+    assert.deepEqual(added(listed), [])
+
+    const refused = await dispatch(ctx, { action: 'remove-market-source', key: builtin[0].key })
+    assert.equal(refused.ok, false)
+    assert.equal(refused.code, 'builtin')
+    assert.deepEqual(added(await dispatch(ctx, { action: 'market-sources' })), [])
+  })
+
+  test('a pasted repository link is stored and handed back to the market', async () => {
+    const response = await dispatch(ctx, { action: 'add-market-source', value: 'https://github.com/owner/repo' })
+    assert.equal(response.ok, true)
+    const rows = added(response)
+    assert.equal(rows.length, 1)
+    assert.equal(rows[0].label, 'owner/repo', 'a bare repository is stored as a whole-repository source')
+    assert.equal(rows[0].page, 'https://github.com/owner/repo')
+    assert.equal(rows[0].builtin, false)
+
+    // The list is a fact about this machine: it survives the next request.
+    const listed = await dispatch(ctx, { action: 'market-sources' })
+    assert.deepEqual(added(listed).map((row) => row.key), ['owner/repo'])
+
+    // readMarket carries the rows even when it does not read the network,
+    // which is what the manager dialog paints from.
+    const market = await internals.readMarket({ includeIndexes: false })
+    assert.equal(market.ok, true)
+    assert.deepEqual(added({ sources: market.sources }).map((row) => row.key), ['owner/repo'])
+  })
+
+  test('a JSON index link becomes a direct source', async () => {
+    const response = await dispatch(ctx, { action: 'add-market-source', value: 'https://skills.example.com/index.json' })
+    assert.equal(response.ok, true)
+    const keys = added(response).map((row) => row.key)
+    assert.ok(keys.includes('https://skills.example.com/index.json'))
+    assert.ok(keys.includes('owner/repo'))
+  })
+
+  test('duplicates, private hosts and non-JSON links are typed refusals', async () => {
+    const duplicate = await dispatch(ctx, { action: 'add-market-source', value: 'https://github.com/owner/repo' })
+    assert.equal(duplicate.ok, false)
+    assert.equal(duplicate.code, 'duplicate')
+
+    const privateHost = await dispatch(ctx, { action: 'add-market-source', value: 'http://127.0.0.1/index.json' })
+    assert.equal(privateHost.ok, false)
+    assert.equal(privateHost.code, 'bad-source')
+    assert.equal(privateHost.reason, 'private-host')
+
+    const notJson = await dispatch(ctx, { action: 'add-market-source', value: 'https://example.com/skills' })
+    assert.equal(notJson.ok, false)
+    assert.equal(notJson.code, 'bad-source')
+    assert.equal(notJson.reason, 'json-file')
+
+    const empty = await dispatch(ctx, { action: 'add-market-source', value: '' })
+    assert.equal(empty.reason, 'empty')
+  })
+
+  test('the list is capped', async () => {
+    const listed = await dispatch(ctx, { action: 'market-sources' })
+    assert.ok(added(listed).length < internals.MAX_MARKET_SOURCES)
+  })
+
+  test('removing an added source leaves the built-in one, and reset forgets the rest', async () => {
+    const removed = await dispatch(ctx, { action: 'remove-market-source', key: 'https://skills.example.com/index.json' })
+    assert.equal(removed.ok, true)
+    assert.deepEqual(added(removed).map((row) => row.key), ['owner/repo'])
+
+    const reset = await dispatch(ctx, { action: 'reset-market-sources' })
+    assert.equal(reset.ok, true)
+    assert.deepEqual(added(reset), [])
+    assert.equal(reset.sources.filter((row) => row.builtin === true).length, internals.MARKET_INDEX_SOURCES.length)
+
+    const unknown = await dispatch(ctx, { action: 'remove-market-source', key: 'owner/repo' })
+    assert.equal(unknown.ok, false)
+    assert.equal(unknown.code, 'unknown-source')
+  })
+
+  test('a bare repository source expands over the GitHub API', async () => {
+    // A person pasting a repository link stores `{ repo, path: '' }`; reading it
+    // hands the index expander a one-repository list, so the tree walk and the
+    // per-skill view links are the same code the bundled index uses.
+    const realFetch = globalThis.fetch
+    const calls = []
+    globalThis.fetch = async (url) => {
+      calls.push(String(url))
+      assert.match(String(url), /api\.github\.com\/repos\/stub\/repo\/git\/trees\/HEAD/, 'the tree is read over the API')
+      return {
+        ok: true,
+        json: async () => ({ tree: [{ type: 'blob', path: 'skills/alpha/SKILL.md' }] }),
+      }
+    }
+    try {
+      const result = await internals.readIndexSource({ repo: 'stub/repo', path: '' })
+      assert.equal(result.warnings.length, 0)
+      assert.equal(result.entries.length, 1)
+      assert.equal(result.entries[0].source, 'https://github.com/stub/repo')
+      assert.equal(result.entries[0].view, 'https://github.com/stub/repo/tree/HEAD/skills/alpha')
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('a token in the environment raises the GitHub API limit', async () => {
+    // Anonymous tree reads share one sixty-requests-per-hour budget per IP, and
+    // a market read costs one per repository. A token in the environment
+    // (GITHUB_TOKEN or GH_TOKEN) is sent to api.github.com only.
+    const realEnv = process.env.GITHUB_TOKEN
+    const realFetch = globalThis.fetch
+    process.env.GITHUB_TOKEN = 'test-token'
+    globalThis.fetch = async (url, init) => {
+      if (String(url).startsWith('https://api.github.com/')) {
+        assert.equal(init?.headers?.authorization, 'Bearer test-token')
+      }
+      return { ok: true, json: async () => ({ tree: [{ type: 'blob', path: 'skills/token/SKILL.md' }] }) }
+    }
+    try {
+      const result = await internals.readIndexSource({ repo: 'stub/token', path: '' })
+      assert.equal(result.entries.length, 1)
+    } finally {
+      globalThis.fetch = realFetch
+      if (realEnv === undefined) delete process.env.GITHUB_TOKEN
+      else process.env.GITHUB_TOKEN = realEnv
+    }
+  })
+
+  test('a direct JSON source is fetched by its own URL', async () => {
+    const realFetch = globalThis.fetch
+    const calls = []
+    globalThis.fetch = async (url) => {
+      calls.push(String(url))
+      if (calls.length === 1) {
+        assert.equal(String(url), 'https://skills.example.com/index.json')
+        return { ok: true, json: async () => ({ repositories: ['https://github.com/stub/repo'] }) }
+      }
+      return { ok: true, json: async () => ({ tree: [{ type: 'blob', path: 'skills/beta/SKILL.md' }] }) }
+    }
+    try {
+      const result = await internals.readIndexSource({ url: 'https://skills.example.com/index.json' })
+      assert.equal(result.warnings.length, 0)
+      assert.equal(result.entries.length, 1)
+      assert.equal(result.entries[0].name, 'beta')
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('a failed refresh keeps the last successful read', async () => {
+    // The anonymous GitHub API limit resets hourly. A 403 on the refresh must
+    // not throw away cards that were read a moment ago: the market keeps the
+    // last copy and adds a warning instead of going empty.
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ tree: [{ type: 'blob', path: 'skills/stale/SKILL.md' }] }) })
+    try {
+      const first = await internals.readIndexSource({ repo: 'stub/stale', path: '' })
+      assert.equal(first.entries.length, 1)
+      const cached = internals.marketIndexCache.get('stub/stale')
+      assert.ok(cached, 'the successful read is cached')
+      cached.at = 0 // force the next read to refetch
+
+      globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}) })
+      const second = await internals.readIndexSource({ repo: 'stub/stale', path: '' })
+      assert.equal(second.entries.length, 1, 'the last read is still shown')
+      assert.equal(second.entries[0].view, 'https://github.com/stub/stale/tree/HEAD/skills/stale')
+      assert.ok(second.warnings.some((warning) => /showing the last read/i.test(warning)))
+    } finally {
+      globalThis.fetch = realFetch
+      internals.marketIndexCache.delete('stub/stale')
+    }
+  })
+
+  test('a damaged bookkeeping file reads as no added sources', async () => {
+    await writeFile(join(base, 'skills-market-sources.json'), '{ not json', 'utf8')
+    const listed = await dispatch(ctx, { action: 'market-sources' })
+    assert.equal(listed.ok, true)
+    assert.deepEqual(listed.sources.filter((row) => row.builtin !== true), [])
+  })
 })

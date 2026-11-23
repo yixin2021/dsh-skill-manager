@@ -32,7 +32,7 @@ for turning one off without editing files. This plugin adds that surface.
 | **Locate** | Reveal a skill or a root in Finder / Explorer / the desktop file manager. |
 | **Known libraries** | Codex, Claude Code, Pi, GitHub Copilot, WorkBuddy and CodeBuddy keep their skills in well-known places; those that exist are listed automatically, each with that agent's mark. An agent that is installed but has no skill yet is listed too, so its first skill has a target. |
 | **Claude Code, Pi and Copilot skills** | Claude Code's user library (`~/.claude/skills`), Pi's (`~/.pi/agent/skills`) and GitHub Copilot's (`~/.copilot/skills`), plus each repository's own `.claude/skills`, `.pi/skills` and `.github/skills`, are listed, switched, installed into and loaded by DSH. |
-| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and installs a skill with one click. Browsing reads nothing over the network; installing reuses the same remote path as a pasted link. |
+| **Skill market** | A second tab browses a curated catalogue shipped with the package (`docs/skills.json`) and published indexes, and installs a skill with one click. Its toolbar manages **custom index sources**, so any GitHub repository or JSON index can feed the same cards; each card's **View source** opens that skill's own folder. Browsing is offline-first; installing reuses the same remote path as a pasted link. |
 | **Add a directory** | Point the panel at another agent's skill library — `~/.claude/skills`, a colleague's checkout, a shared bundle. Its skills are listed, managed in place, and loaded by DSH too. |
 
 ## Install
@@ -222,31 +222,36 @@ The market merges two things:
 
 1. **The bundled catalogue** `docs/skills.json`, shipped inside the package.
    Offline, always present.
-2. **Published index sources** — a fixed list in the Host (`MARKET_INDEX_SOURCES`).
-   Each is a JSON document listing GitHub repositories; the Host reads each
-   repository's git tree once and turns every `SKILL.md` it finds into one
-   installable card. The default index ships as `docs/market-index.json` and
-   covers `anthropics/skills`, `wshobson/agents` and `anthropics/claude-cookbooks`.
-   It is fetched through the GitHub contents API (with a raw fallback), because
-   some networks reset `raw.githubusercontent.com` while the API answers.
+2. **Index sources** — each is a JSON document listing GitHub repositories; the
+   Host reads each repository's git tree once and turns every `SKILL.md` it
+   finds into one installable card. The bundled index ships as
+   `docs/market-index.json` and covers `anthropics/skills`, `wshobson/agents`
+   and `anthropics/claude-cookbooks`; it is fetched through the GitHub contents
+   API (with a raw fallback), because some networks reset
+   `raw.githubusercontent.com` while the API answers. Beyond that, anyone can
+   press **Index sources** on the market tab and add their own (see below).
 
 A source that is down only adds a collapsible warning; the bundled file and the
 rest of the panel keep working offline. Fetched indexes are cached for ten
-minutes.
+minutes. A card's **View source** link opens that skill's own folder, not the
+repository root.
 
-The bundled file is:
+The bundled file is (the optional `view` is the page the card opens; installing
+still reads `source` and `path`):
 
 ```json
 {
   "schema": 1,
   "skills": [
     {
-      "id": "dsh-badge",
-      "name": "DSH Badge",
-      "description": "Add the official \"powered by dsh\" badge …",
-      "author": "DeepSeek Harness",
-      "tags": ["docs", "attribution"],
-      "source": "https://github.com/yixin2021/dsh-skill-manager"
+      "id": "skill-creator",
+      "name": "Skill Creator",
+      "description": "Anthropic's guide and templates for authoring and packaging Agent Skills …",
+      "author": "Anthropic",
+      "tags": ["skills", "docs"],
+      "source": "https://github.com/anthropics/skills",
+      "path": "skills/skill-creator",
+      "view": "https://github.com/anthropics/skills/tree/HEAD/skills/skill-creator"
     }
   ]
 }
@@ -259,6 +264,37 @@ widen where the panel will fetch from. Installing an entry is an ordinary
 `install-from-remote` request for its `source` into the library you are viewing,
 so the same size limits, conflicts and "choose a skill" step apply as for a
 pasted link.
+
+#### Custom index sources
+
+The market toolbar carries an **Index sources** button. Its dialog lists every
+source in use — the built-in one is tagged **Built-in** and cannot be removed —
+and accepts one link at a time:
+
+- **A repository link** `https://github.com/owner/repo` turns every `SKILL.md`
+  in it into a card;
+- **A JSON file inside a repository** — a page link such as
+  `https://github.com/owner/repo/blob/main/docs/index.json` is rewritten to the
+  GitHub API read;
+- **A plain JSON URL** — any publicly reachable `https://…/index.json`;
+- **A GitLab, Gitee, GitCode or AtomGit `blob` page** is rewritten to that host's
+  `raw` route.
+
+Nothing is fetched when a link is added, so an index that is temporarily down
+can still be stored while a typo is fixed; the market is reread afterwards and a
+dead source only adds a warning. The list lives in
+`$DSH_HOME/skills-market-sources.json` — beside the skill roots, a fact about
+this machine rather than a profile — with at most 20 sources, and a malformed
+row is dropped. To keep the Host from being aimed inward, `localhost`, `127.*`,
+`10.*`, `192.168.*`, `169.254.*`, `172.16`–`172.31`, `*.local` and `*.internal`
+hosts are refused.
+
+> Published indexes are read through the GitHub API. The anonymous limit is
+> 60 requests per hour per IP and one market read costs one request per
+> repository; if 403 / rate-limit warnings become common, export
+> `GITHUB_TOKEN` or `GH_TOKEN` where DSH starts to use the authenticated
+> budget. The token is only sent to `api.github.com`, never to another index
+> host.
 
 ### Added directories
 
@@ -321,7 +357,7 @@ names, and a symlink inside a repository is skipped rather than followed.
 npm test
 ```
 
-Runs `node --check` on all seven sources, then 114 tests over a real temporary
+Runs `node --check` on all nine sources, then 147 tests over a real temporary
 tree and over fixtures built in the test itself: frontmatter parsing (quoted
 scalars, comments, block scalars, invalid flag spellings), path containment,
 root discovery, direct-children-only scanning, and every mutation including

@@ -32,7 +32,7 @@ DSH 会从用户目录和项目目录下的 `.dsh/skills`、`.agents/skills` 中
 | **定位** | 在访达 / 资源管理器 / 桌面文件管理器中显示技能或根目录。 |
 | **自动识别** | Codex、Claude Code、Pi、GitHub Copilot、WorkBuddy、CodeBuddy 的技能目录在固定位置，存在的会被自动列出，并带上各自 agent 的图标。agent 装了但还没有任何技能时也会列出，第一个技能才有地方可去。 |
 | **Claude Code、Pi 与 Copilot 技能** | Claude Code 的用户技能库（`~/.claude/skills`）、Pi 的（`~/.pi/agent/skills`）、GitHub Copilot 的（`~/.copilot/skills`），以及每个仓库自己的 `.claude/skills`、`.pi/skills` 和 `.github/skills`，都会被列出、可启停、可作安装目标，并由 DSH 加载。 |
-| **技能市场** | 第二个页签浏览随包附带的精选技能目录（`docs/skills.json`），一键装进本地技能库。浏览本身不联网；安装复用与粘贴链接相同的远程导入路径。 |
+| **技能市场** | 第二个页签浏览随包附带的精选目录（`docs/skills.json`）和公开索引，一键装进本地技能库。工具栏里的**索引源**可以管理自定义索引——任意 GitHub 仓库或 JSON 索引都能喂给同一批卡片；每张卡片的**查看来源**指向该技能自己的目录。浏览优先离线；安装复用与粘贴链接相同的远程导入路径。 |
 | **添加目录** | 把另一个 agent 的技能库挂到面板上——`~/.claude/skills`、同事的仓库、共享的技能包都行。里面的技能会被列出、原地管理，DSH 也会加载。 |
 
 ## 安装
@@ -185,29 +185,44 @@ Copilot 另外也读 `.claude/skills`、`.agents/skills` 和 `~/.agents/skills`�
 市场把两类来源合并在一起：
 
 1. **内置目录** `docs/skills.json`，随包附带，离线也在。
-2. **外部索引源** —— Host 里一份固定的清单（`MARKET_INDEX_SOURCES`），每个是一个列出 GitHub 仓库的 JSON。Host 对每个仓库读一次 git tree，把找到的每个 `SKILL.md` 变成一张可安装的卡片。默认索引就是 `docs/market-index.json`，覆盖 `anthropics/skills`、`wshobson/agents`、`anthropics/claude-cookbooks`。它通过 GitHub contents API 读取（失败时回退到 raw），因为部分网络会重置 `raw.githubusercontent.com` 而 API 可达。
+2. **索引源** —— 每一个都是列出 GitHub 仓库的 JSON；Host 对每个仓库读一次 git tree，把找到的每个 `SKILL.md` 变成一张可安装的卡片。随包的内置索引是 `docs/market-index.json`，覆盖 `anthropics/skills`、`wshobson/agents`、`anthropics/claude-cookbooks`，通过 GitHub contents API 读取（失败时回退到 raw），因为部分网络会重置 `raw.githubusercontent.com` 而 API 可达。除此之外，任何人都能在市场页点「索引源」添加自己的索引（见下）。
 
-某个源挂了只会多一条可折叠的警告，内置目录和面板其余部分照常离线可用。抓到的索引缓存 10 分钟。
+某个源挂了只会多一条可折叠的警告，内置目录和面板其余部分照常离线可用。抓到的索引缓存 10 分钟。每张卡片的「查看来源」打开的是该技能自己的目录，而不是仓库根。
 
-内置目录长这样：
+内置目录长这样（`view` 是卡片链接的页面，安装仍走 `source` 与 `path`）：
 
 ```json
 {
   "schema": 1,
   "skills": [
     {
-      "id": "dsh-badge",
-      "name": "DSH Badge",
-      "description": "给文档、PR/MR 加上 powered by dsh 徽章……",
-      "author": "DeepSeek Harness",
-      "tags": ["docs", "attribution"],
-      "source": "https://github.com/yixin2021/dsh-skill-manager"
+      "id": "skill-creator",
+      "name": "Skill Creator",
+      "description": "创建、改进和打包 Agent Skill 的官方指南与模板……",
+      "author": "Anthropic",
+      "tags": ["skills", "docs"],
+      "source": "https://github.com/anthropics/skills",
+      "path": "skills/skill-creator",
+      "view": "https://github.com/anthropics/skills/tree/HEAD/skills/skill-creator"
     }
   ]
 }
 ```
 
 每条读入时都会校验：写坏的行会被丢弃；`source` 的主机若不在安装器已支持的范围内（`github.com`、`gitlab.com`、`gitee.com`、`gitcode.com`、`atomgit.com`）会被拒绝——市场不会扩大面板的抓取范围。安装一条就是把它的 `source` 作为普通的 `install-from-remote` 请求装进当前查看的技能库，因此大小上限、冲突拒绝和“选择技能”这一步都和粘贴链接完全一致。
+
+#### 自定义索引源
+
+技能市场页签的工具栏有「索引源」按钮。弹窗列出所有在用的源（内置的带「内置」标签、不可移除），并可以把一个链接加进列表：
+
+- **仓库链接** `https://github.com/owner/repo`：仓库里每个 `SKILL.md` 都成为一张卡片；
+- **仓库内 JSON**：`https://github.com/owner/repo/blob/main/docs/index.json` 这样的页面链接会被改写成 GitHub API 读取；
+- **普通 JSON**：任何公网可达的 `https://…/index.json`；
+- GitLab/Gitee/GitCode/AtomGit 的 `blob` 页面会被改写成对应的 `raw` 链接。
+
+添加时不做联网校验，所以一个暂时挂掉的索引也能先存下来、改掉错别字；之后重新读取市场即可看到它带来的卡片，读取失败只多一条警告。列表存在 `$DSH_HOME/skills-market-sources.json`（与技能根目录列表一样，属于这台机器而不是某个 profile），最多 20 个，写坏的行会被丢掉。为避免 Host 被指去访问本机或内网，`localhost`、`127.*`、`10.*`、`192.168.*`、`169.254.*`、`172.16`–`172.31`、`*.local`、`*.internal` 这些主机会被拒绝。
+
+> 公开索引靠 GitHub API 读取。匿名限额是按 IP 每小时 60 次，而一次市场读取每个仓库要花一次请求；如果经常看到 403 / rate limit，在启动 DSH 的环境里导出 `GITHUB_TOKEN` 或 `GH_TOKEN` 就能用已认证的额度。令牌只会发给 `api.github.com`，不会发给其它索引主机。
 
 ### 添加的目录
 
@@ -258,7 +273,7 @@ profile 不会丢，Web 端和桌面端也共用同一份。文件损坏时按�
 npm test
 ```
 
-先对七个源文件跑 `node --check`，再在真实临时目录和测试自建的样例上跑 114 项测试：
+先对九个源文件跑 `node --check`，再在真实临时目录和测试自建的样例上跑 147 项测试：
 frontmatter 解析（引号标量、注释、块标量、非法布尔写法）、路径包含、根目录发现、
 仅扫描直接子项、以及包括各种拒绝分支在内的全部变更操作——再加上远程导入这条链路：
 链接解析、传输协议白名单、tar 读取，以及克隆。
